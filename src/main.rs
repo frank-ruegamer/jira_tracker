@@ -8,7 +8,8 @@ mod stopwatch;
 
 #[get("/")]
 fn elapsed(stopwatch: &State<Stopwatch>) -> String {
-    stopwatch.elapsed().as_secs().to_string()
+    let millis = stopwatch.elapsed().as_millis();
+    format!("{:.3}", millis as f32 / 1000f32)
 }
 
 #[rocket::main]

@@ -1,0 +1,2 @@
+[global.databases]
+sqlite_timers = { url = "database.sqlite" }

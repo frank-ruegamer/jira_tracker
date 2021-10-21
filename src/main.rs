@@ -12,8 +12,7 @@ struct TimersDbConn(diesel::SqliteConnection);
 
 #[get("/")]
 fn elapsed(conn: TimersDbConn, stopwatch: &State<Stopwatch>) -> String {
-    let millis = stopwatch.elapsed().as_millis();
-    format!("{:.3}", millis as f32 / 1000f32)
+    humantime::format_duration(stopwatch.elapsed_seconds()).to_string()
 }
 
 #[rocket::main]

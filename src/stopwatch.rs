@@ -27,6 +27,10 @@ impl Stopwatch {
         self.start_time.map_or(Duration::ZERO, |t| t.elapsed()) + self.duration_sum
     }
 
+    pub fn elapsed_seconds(&self) -> Duration {
+        Duration::from_secs(self.elapsed().as_secs())
+    }
+
     pub fn pause(&mut self) {
         self.duration_sum += self.elapsed();
         self.start_time = None;

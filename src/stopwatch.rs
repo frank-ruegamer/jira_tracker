@@ -27,7 +27,9 @@ impl Stopwatch {
     }
 
     pub fn start(&mut self) {
-        self.start_time = Option::from(Instant::now());
+        if let None = self.start_time {
+            self.start_time = Option::from(Instant::now());
+        }
     }
 
     fn elapsed(&self) -> Duration {

@@ -1,6 +1,13 @@
+use crate::instant_serializer::SerializableInstant;
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use std::time::{Duration, Instant};
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Stopwatch {
+    #[serde(default)]
+    #[serde_as(as = "Option<SerializableInstant>")]
     start_time: Option<Instant>,
     duration_sum: Duration,
 }

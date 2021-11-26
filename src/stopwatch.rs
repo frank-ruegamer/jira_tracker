@@ -30,12 +30,16 @@ impl Stopwatch {
         self.start_time = Option::from(Instant::now());
     }
 
-    pub fn elapsed(&self) -> Duration {
-        self.start_time.map_or(Duration::ZERO, |t| t.elapsed()) + self.duration_sum
+    fn elapsed(&self) -> Duration {
+        self.start_time.map_or(Duration::ZERO, |t| t.elapsed())
     }
 
-    pub fn elapsed_seconds(&self) -> Duration {
-        Duration::from_secs(self.elapsed().as_secs())
+    pub fn total_elapsed(&self) -> Duration {
+        self.elapsed() + self.duration_sum
+    }
+
+    pub fn total_elapsed_seconds(&self) -> Duration {
+        Duration::from_secs(self.total_elapsed().as_secs())
     }
 
     pub fn pause(&mut self) {

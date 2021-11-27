@@ -2,12 +2,14 @@
 extern crate rocket;
 
 use rocket::State;
+use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use stopwatch::Stopwatch;
 
 mod instant_serializer;
 mod stopwatch;
 
+#[derive(Debug, Serialize, Deserialize)]
 struct AppData {
     stopwatch: Mutex<Stopwatch>,
 }

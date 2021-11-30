@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
+use std::collections::HashMap;
 use std::sync::{Mutex, RwLock};
 
 use rocket::State;
@@ -28,34 +29,32 @@ impl Tracker {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppData {
-    trackers: RwLock<Vec<Tracker>>,
+    trackers: RwLock<HashMap<String, Tracker>>,
 }
 
 impl AppData {
+    fn new() -> Self {
+        Self {
+            trackers: RwLock::new(HashMap::new()),
+        }
+    }
+
     fn with<F, R>(&self, key: &str, f: F) -> Option<R>
     where
         F: FnOnce(&Tracker) -> R,
     {
-        let guard = self.trackers.read().unwrap();
-        let tracker = guard
-            .iter()
-            .filter(|t| t.key == key)
-            .collect::<Vec<&Tracker>>();
-
-        if tracker.len() > 1 {
-            panic!("Found more than one tracker for key {}", key);
-        }
-
-        if tracker.is_empty() {
-            return None;
-        }
-
-        let tracker = *tracker.first().unwrap();
-        Some(f(tracker))
+        self.trackers
+            .read()
+            .unwrap()
+            .get(key)
+            .map(|tracker| f(tracker))
     }
 
     fn create_tracker(&self, key: &str) {
-        self.trackers.write().unwrap().push(Tracker::new(key));
+        self.trackers
+            .write()
+            .unwrap()
+            .insert(key.to_string(), Tracker::new(key));
     }
 }
 
@@ -90,9 +89,7 @@ fn pause(key: &str, app_data: &State<AppData>) {
 
 #[rocket::main]
 async fn main() {
-    let state = AppData {
-        trackers: RwLock::new(vec![]),
-    };
+    let state = AppData::new();
     state.create_tracker("a");
     let _ = rocket::build()
         .manage(state)

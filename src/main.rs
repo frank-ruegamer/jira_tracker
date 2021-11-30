@@ -24,19 +24,19 @@ fn create(key: &str, app_data: &State<AppData>) -> Result<(), Conflict<()>> {
 }
 
 #[post("/<key>/start")]
-fn start(key: &str, app_data: &State<AppData>) {
+fn start(key: &str, app_data: &State<AppData>) -> Option<()> {
     app_data.with(key, |tracker| {
         let mut stopwatch = tracker.stopwatch.lock().unwrap();
         stopwatch.start();
-    });
+    })
 }
 
 #[post("/<key>/pause")]
-fn pause(key: &str, app_data: &State<AppData>) {
+fn pause(key: &str, app_data: &State<AppData>) -> Option<()> {
     app_data.with(key, |tracker| {
         let mut stopwatch = tracker.stopwatch.lock().unwrap();
         stopwatch.pause();
-    });
+    })
 }
 
 #[rocket::main]

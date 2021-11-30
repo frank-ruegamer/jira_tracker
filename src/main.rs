@@ -1,41 +1,72 @@
 #[macro_use]
 extern crate rocket;
 
+use std::sync::Mutex;
+
 use rocket::State;
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
+
 use stopwatch::Stopwatch;
 
 mod instant_serializer;
 mod stopwatch;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct AppData {
+struct JiraTracker {
+    key: String,
     stopwatch: Mutex<Stopwatch>,
 }
 
-#[get("/")]
-fn elapsed(app_data: &State<AppData>) -> String {
-    let stopwatch = app_data.stopwatch.lock().unwrap();
-    humantime::format_duration(stopwatch.total_elapsed_seconds()).to_string()
+#[derive(Debug, Serialize, Deserialize)]
+struct AppData {
+    trackers: Vec<JiraTracker>,
 }
 
-#[post("/start")]
-fn start(app_data: &State<AppData>) {
-    let mut stopwatch = app_data.stopwatch.lock().unwrap();
-    stopwatch.start();
+impl AppData {
+    fn find<'t>(self: &'t AppData, key: &str) -> Option<&'t JiraTracker> {
+        self.trackers
+            .iter()
+            .filter(|t| t.key == key)
+            .fold(None, |acc, t| {
+                if let Some(_) = acc {
+                    panic!("Found more than one tracker for key {}", key)
+                }
+                Some(t)
+            })
+    }
 }
 
-#[post("/pause")]
-fn pause(app_data: &State<AppData>) {
-    let mut stopwatch = app_data.stopwatch.lock().unwrap();
-    stopwatch.pause();
+#[get("/<key>")]
+fn elapsed(key: &str, app_data: &State<AppData>) -> Option<String> {
+    app_data.find(key).map(|tracker| {
+        let stopwatch = tracker.stopwatch.lock().unwrap();
+        humantime::format_duration(stopwatch.total_elapsed_seconds()).to_string()
+    })
+}
+
+#[post("/<key>/start")]
+fn start(key: &str, app_data: &State<AppData>) {
+    app_data.find(key).map(|tracker| {
+        let mut stopwatch = tracker.stopwatch.lock().unwrap();
+        stopwatch.start();
+    });
+}
+
+#[post("/<key>/pause")]
+fn pause(key: &str, app_data: &State<AppData>) {
+    app_data.find(key).map(|tracker| {
+        let mut stopwatch = tracker.stopwatch.lock().unwrap();
+        stopwatch.pause();
+    });
 }
 
 #[rocket::main]
 async fn main() {
     let state = AppData {
-        stopwatch: Mutex::new(Stopwatch::new_and_start()),
+        trackers: vec![JiraTracker {
+            key: "a".to_string(),
+            stopwatch: Mutex::new(Stopwatch::new_and_start()),
+        }],
     };
     let _ = rocket::build()
         .manage(state)

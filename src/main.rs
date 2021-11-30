@@ -17,6 +17,15 @@ struct Tracker {
     stopwatch: Mutex<Stopwatch>,
 }
 
+impl Tracker {
+    fn new(key: &str) -> Self {
+        Self {
+            key: key.to_string(),
+            stopwatch: Mutex::new(Stopwatch::new_and_start()),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct AppData {
     trackers: RwLock<Vec<Tracker>>,
@@ -46,10 +55,7 @@ impl AppData {
     }
 
     fn create_tracker(&self, key: &str) {
-        self.trackers.write().unwrap().push(Tracker {
-            key: key.to_string(),
-            stopwatch: Mutex::new(Stopwatch::new_and_start()),
-        });
+        self.trackers.write().unwrap().push(Tracker::new(key));
     }
 }
 

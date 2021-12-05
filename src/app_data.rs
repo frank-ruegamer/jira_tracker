@@ -1,4 +1,5 @@
 use crate::instant_serializer::SerializableInstant;
+use chrono::{DateTime, Local};
 use core::option::Option;
 use core::result::Result;
 use core::result::Result::{Err, Ok};
@@ -18,6 +19,7 @@ pub struct OccupiedError {
 struct PausedTracker {
     key: String,
     duration: Duration,
+    start_time: DateTime<Local>,
 }
 
 impl PausedTracker {
@@ -25,6 +27,7 @@ impl PausedTracker {
         Self {
             key: key.to_string(),
             duration: Duration::default(),
+            start_time: Local::now(),
         }
     }
 }

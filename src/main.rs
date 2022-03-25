@@ -19,10 +19,8 @@ fn list(app_data: &State<AppData>) -> Json<Vec<TrackerInformation>> {
 }
 
 #[get("/<key>")]
-fn elapsed(key: &str, app_data: &State<AppData>) -> Option<String> {
-    app_data
-        .elapsed_seconds(key)
-        .map(|duration| humantime::format_duration(duration).to_string())
+fn get(key: &str, app_data: &State<AppData>) -> Option<Json<TrackerInformation>> {
+    app_data.get_tracker(key).map(|tracker| Json(tracker))
 }
 
 #[post("/<key>")]
@@ -46,7 +44,7 @@ async fn main() {
     let _ = state.create_tracker("a");
     let _ = rocket::build()
         .manage(state)
-        .mount("/", routes![list, elapsed, create, start, pause])
+        .mount("/", routes![list, get, create, start, pause])
         .launch()
         .await;
 }

@@ -95,6 +95,13 @@ impl InnerAppData {
             .map(|elapsed| Duration::from_secs(elapsed.as_secs()))
     }
 
+    fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {
+        self.trackers.get(key).map(|_| TrackerInformation {
+            key: key.to_owned(),
+            duration: self.elapsed_seconds(key).unwrap(),
+        })
+    }
+
     fn list_trackers(&self) -> Vec<TrackerInformation> {
         self.trackers
             .keys()
@@ -152,12 +159,8 @@ impl AppData {
         f(inner.write().unwrap().deref_mut())
     }
 
-    pub fn elapsed(&self, key: &str) -> Option<Duration> {
-        self.reading(|a| a.elapsed(key))
-    }
-
-    pub fn elapsed_seconds(&self, key: &str) -> Option<Duration> {
-        self.reading(|a| a.elapsed_seconds(key))
+    pub fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {
+        self.reading(|a| a.get_tracker(key))
     }
 
     pub fn list_trackers(&self) -> Vec<TrackerInformation> {

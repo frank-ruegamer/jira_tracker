@@ -1,14 +1,17 @@
-use crate::instant_serializer::SerializableInstant;
-use chrono::{DateTime, Local};
 use core::option::Option;
 use core::result::Result;
 use core::result::Result::{Err, Ok};
-use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use std::collections::HashMap;
-use std::ops::AddAssign;
+use std::ops::{AddAssign, Deref, DerefMut};
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
+
+use chrono::{DateTime, Local};
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+
+use crate::duration_serializer;
+use crate::instant_serializer::SerializableInstant;
 
 #[derive(Debug, Clone, Responder)]
 pub struct OccupiedError {
@@ -55,6 +58,13 @@ impl RunningTracker {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct TrackerInformation {
+    key: String,
+    #[serde(with = "duration_serializer")]
+    duration: Duration,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct InnerAppData {
     running: Option<RunningTracker>,
@@ -78,6 +88,21 @@ impl InnerAppData {
                 .map_or(Duration::ZERO, |r| r.start_time.elapsed());
             tracker.duration + running_duration
         })
+    }
+
+    fn elapsed_seconds(&self, key: &str) -> Option<Duration> {
+        self.elapsed(key)
+            .map(|elapsed| Duration::from_secs(elapsed.as_secs()))
+    }
+
+    fn list_trackers(&self) -> Vec<TrackerInformation> {
+        self.trackers
+            .keys()
+            .map(|key| TrackerInformation {
+                key: key.to_owned(),
+                duration: self.elapsed_seconds(key).unwrap(),
+            })
+            .collect()
     }
 
     fn start(&mut self, key: &str) -> Option<()> {
@@ -117,28 +142,37 @@ impl AppData {
         Self(RwLock::new(InnerAppData::new()))
     }
 
-    pub fn elapsed(&self, key: &str) -> Option<Duration> {
+    fn reading<F: FnOnce(&InnerAppData) -> T, T>(&self, f: F) -> T {
         let AppData(inner) = self;
-        inner.read().unwrap().elapsed(key)
+        f(inner.read().unwrap().deref())
+    }
+
+    fn writing<F: FnOnce(&mut InnerAppData) -> T, T>(&self, f: F) -> T {
+        let AppData(inner) = self;
+        f(inner.write().unwrap().deref_mut())
+    }
+
+    pub fn elapsed(&self, key: &str) -> Option<Duration> {
+        self.reading(|a| a.elapsed(key))
     }
 
     pub fn elapsed_seconds(&self, key: &str) -> Option<Duration> {
-        self.elapsed(key)
-            .map(|elapsed| Duration::from_secs(elapsed.as_secs()))
+        self.reading(|a| a.elapsed_seconds(key))
+    }
+
+    pub fn list_trackers(&self) -> Vec<TrackerInformation> {
+        self.reading(|a| a.list_trackers())
     }
 
     pub fn start(&self, key: &str) -> Option<()> {
-        let AppData(inner) = self;
-        inner.write().unwrap().start(key)
+        self.writing(|a| a.start(key))
     }
 
     pub fn pause(&self) {
-        let AppData(inner) = self;
-        inner.write().unwrap().pause();
+        self.writing(|a| a.pause())
     }
 
     pub fn create_tracker(&self, key: &str) -> Result<(), OccupiedError> {
-        let AppData(inner) = self;
-        inner.write().unwrap().create_tracker(key)
+        self.writing(|a| a.create_tracker(key))
     }
 }

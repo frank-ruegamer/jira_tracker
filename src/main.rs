@@ -2,12 +2,21 @@
 extern crate rocket;
 
 use rocket::response::status::Conflict;
+use rocket::serde::json::Json;
 use rocket::State;
 
+use crate::app_data::TrackerInformation;
 use app_data::AppData;
 
 mod app_data;
+mod duration_serializer;
 mod instant_serializer;
+mod tempo_api;
+
+#[get("/")]
+fn list(app_data: &State<AppData>) -> Json<Vec<TrackerInformation>> {
+    Json(app_data.list_trackers())
+}
 
 #[get("/<key>")]
 fn elapsed(key: &str, app_data: &State<AppData>) -> Option<String> {
@@ -37,7 +46,7 @@ async fn main() {
     let _ = state.create_tracker("a");
     let _ = rocket::build()
         .manage(state)
-        .mount("/", routes![elapsed, create, start, pause])
+        .mount("/", routes![list, elapsed, create, start, pause])
         .launch()
         .await;
 }

@@ -19,10 +19,10 @@ pub struct OccupiedError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct PausedTracker {
-    key: String,
-    duration: Duration,
-    start_time: DateTime<Local>,
+pub struct PausedTracker {
+    pub key: String,
+    pub duration: Duration,
+    pub start_time: DateTime<Local>,
 }
 
 impl PausedTracker {
@@ -139,6 +139,21 @@ impl InnerAppData {
             .insert(key.to_string(), PausedTracker::new(key));
         Ok(())
     }
+
+    fn remove(&mut self, key: &str) -> PausedTracker {
+        if self.running.as_ref().filter(|t| t.key == key).is_some() {
+            self.pause();
+        }
+        self.trackers.remove(key).unwrap()
+    }
+
+    fn remove_all(&mut self) -> Vec<PausedTracker> {
+        self.pause();
+        let map: Vec<String> = self.trackers.keys().map(|k| k.to_string()).collect();
+        map.iter()
+            .map(|key| self.trackers.remove(key).unwrap())
+            .collect()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -177,5 +192,13 @@ impl AppData {
 
     pub fn create_tracker(&self, key: &str) -> Result<(), OccupiedError> {
         self.writing(|a| a.create_tracker(key))
+    }
+
+    pub fn remove(&self, key: &str) -> PausedTracker {
+        self.writing(|a| a.remove(key))
+    }
+
+    pub fn remove_all(&self) -> Vec<PausedTracker> {
+        self.writing(|a| a.remove_all())
     }
 }

@@ -1,12 +1,18 @@
 #[macro_use]
 extern crate rocket;
 
+use std::error::Error;
+
+use rocket::http::Status;
 use rocket::response::status::Conflict;
+use rocket::response::Responder;
 use rocket::serde::json::Json;
-use rocket::State;
+use rocket::{Request, Response, State};
+
+use app_data::AppData;
 
 use crate::app_data::TrackerInformation;
-use app_data::AppData;
+use crate::tempo_api::TempoApi;
 
 mod app_data;
 mod duration_serializer;
@@ -38,13 +44,31 @@ fn pause(app_data: &State<AppData>) {
     app_data.pause();
 }
 
+#[post("/submit")]
+async fn submit(app_data: &State<AppData>, api: &State<TempoApi>) -> Result<(), LogError> {
+    api.submit_all(app_data.remove_all())
+        .await
+        .map_err(|e| LogError(e))
+}
+
+struct LogError(Box<dyn Error>);
+
+impl<'r, 'o: 'r> Responder<'r, 'o> for LogError {
+    fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'o> {
+        println!("Internal Server Error: {}", self.0);
+        Response::build().status(Status::InternalServerError).ok()
+    }
+}
+
 #[rocket::main]
 async fn main() {
     let state = AppData::new();
-    let _ = state.create_tracker("a");
+    let _ = state.create_tracker("WEBAPP-121");
+    state.start("WEBAPP-121");
     let _ = rocket::build()
         .manage(state)
-        .mount("/", routes![list, get, create, start, pause])
+        .manage(TempoApi::new())
+        .mount("/", routes![list, get, create, start, pause, submit])
         .launch()
         .await;
 }

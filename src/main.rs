@@ -19,27 +19,27 @@ mod duration_serializer;
 mod instant_serializer;
 mod tempo_api;
 
-#[get("/")]
+#[get("/trackers")]
 fn list(app_data: &State<AppData>) -> Json<Vec<TrackerInformation>> {
     Json(app_data.list_trackers())
 }
 
-#[get("/<key>")]
+#[get("/trackers/<key>")]
 fn get(key: &str, app_data: &State<AppData>) -> Option<Json<TrackerInformation>> {
     app_data.get_tracker(key).map(|tracker| Json(tracker))
 }
 
-#[post("/<key>")]
+#[post("/trackers/<key>")]
 fn create(key: &str, app_data: &State<AppData>) -> Result<(), Conflict<()>> {
     app_data.create_tracker(key).map_err(|_| Conflict(None))
 }
 
-#[post("/<key>/start")]
+#[post("/trackers/<key>/start")]
 fn start(key: &str, app_data: &State<AppData>) -> Option<()> {
     app_data.start(key)
 }
 
-#[post("/pause")]
+#[post("/tracker/pause")]
 fn pause(app_data: &State<AppData>) {
     app_data.pause();
 }

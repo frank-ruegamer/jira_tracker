@@ -95,6 +95,13 @@ impl InnerAppData {
             .map(|elapsed| Duration::from_secs(elapsed.as_secs()))
     }
 
+    fn current(&self) -> Option<TrackerInformation> {
+        self.running.as_ref().map(|r| TrackerInformation {
+            key: r.key.to_owned(),
+            duration: self.elapsed_seconds(&r.key).unwrap(),
+        })
+    }
+
     fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {
         self.trackers.get(key).map(|_| TrackerInformation {
             key: key.to_owned(),
@@ -172,6 +179,10 @@ impl AppData {
     fn writing<F: FnOnce(&mut InnerAppData) -> T, T>(&self, f: F) -> T {
         let AppData(inner) = self;
         f(inner.write().unwrap().deref_mut())
+    }
+
+    pub fn current(&self) -> Option<TrackerInformation> {
+        self.reading(|a| a.current())
     }
 
     pub fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {

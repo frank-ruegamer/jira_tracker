@@ -39,6 +39,11 @@ fn start(key: &str, app_data: &State<AppData>) -> Option<()> {
     app_data.start(key)
 }
 
+#[get("/tracker")]
+fn current(app_data: &State<AppData>) -> Option<Json<TrackerInformation>> {
+    app_data.current().map(|tracker| Json(tracker))
+}
+
 #[post("/tracker/pause")]
 fn pause(app_data: &State<AppData>) {
     app_data.pause();
@@ -68,7 +73,7 @@ async fn main() {
     let _ = rocket::build()
         .manage(state)
         .manage(TempoApi::new())
-        .mount("/", routes![list, get, create, start, pause, submit])
+        .mount("/", routes![list, get, create, start, pause, current, submit])
         .launch()
         .await;
 }

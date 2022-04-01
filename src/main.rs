@@ -2,7 +2,7 @@
 extern crate rocket;
 
 use rocket::http::Status;
-use rocket::response::status::Conflict;
+use rocket::response::status;
 use rocket::serde::json::Json;
 use rocket::State;
 
@@ -28,8 +28,8 @@ fn get(key: &str, app_data: &State<AppData>) -> Option<Json<TrackerInformation>>
 }
 
 #[post("/trackers/<key>")]
-fn create(key: &str, app_data: &State<AppData>) -> Result<(), Conflict<()>> {
-    app_data.create_tracker(key).map_err(|_| Conflict(None))
+fn create(key: &str, app_data: &State<AppData>) -> Result<(), status::Conflict<()>> {
+    app_data.create_tracker(key).map_err(|_| status::Conflict(None))
 }
 
 #[post("/trackers/<key>/start")]
@@ -37,9 +37,15 @@ fn start(key: &str, app_data: &State<AppData>) -> Option<()> {
     app_data.start(key)
 }
 
+#[delete("/trackers/<key>")]
+fn delete(key: &str, app_data: &State<AppData>) -> Option<status::NoContent> {
+    app_data.remove(key).map(|_| status::NoContent)
+}
+
 #[delete("/trackers")]
-fn clear(app_data: &State<AppData>) {
+fn clear(app_data: &State<AppData>) -> status::NoContent {
     app_data.remove_all();
+    status::NoContent
 }
 
 #[get("/tracker")]
@@ -66,7 +72,7 @@ async fn main() {
         .manage(TempoApi::new())
         .mount(
             "/",
-            routes![list, get, create, clear, start, pause, current, submit],
+            routes![list, get, create, delete, clear, start, pause, current, submit],
         )
         .launch()
         .await;

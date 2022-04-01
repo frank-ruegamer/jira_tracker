@@ -144,11 +144,11 @@ impl InnerAppData {
         Ok(())
     }
 
-    fn remove(&mut self, key: &str) -> PausedTracker {
+    fn remove(&mut self, key: &str) -> Option<PausedTracker> {
         if self.running.as_ref().filter(|t| t.key == key).is_some() {
             self.pause();
         }
-        self.trackers.remove(key).unwrap()
+        self.trackers.remove(key)
     }
 
     fn remove_all(&mut self) -> Vec<PausedTracker> {
@@ -204,7 +204,7 @@ impl AppData {
         self.writing(|a| a.create_tracker(key))
     }
 
-    pub fn remove(&self, key: &str) -> PausedTracker {
+    pub fn remove(&self, key: &str) -> Option<PausedTracker> {
         self.writing(|a| a.remove(key))
     }
 

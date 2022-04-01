@@ -7,9 +7,7 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::Serialize;
 
 use crate::app_data::PausedTracker;
-
-const JIRA_ACCOUNT_ID: &str = "JIRA_ACCOUNT_ID";
-const TEMPO_API_TOKEN: &str = "TEMPO_API_TOKEN";
+use crate::config::{JIRA_ACCOUNT_ID, TEMPO_API_TOKEN};
 
 pub struct TempoApi {
     client: reqwest::Client,

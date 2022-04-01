@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
+use crate::config::write_state_file;
 use crate::duration_serializer;
 use crate::instant_serializer;
 
@@ -176,7 +177,9 @@ impl AppData {
 
     fn writing<F: FnOnce(&mut InnerAppData) -> T, T>(&self, f: F) -> T {
         let AppData(inner) = self;
-        f(inner.write().unwrap().deref_mut())
+        let result = f(inner.write().unwrap().deref_mut());
+        write_state_file(self).unwrap();
+        result
     }
 
     pub fn current(&self) -> Option<TrackerInformation> {

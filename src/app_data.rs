@@ -127,9 +127,8 @@ impl InnerAppData {
     }
 
     fn pause(&mut self) {
-        if self.running.is_some() {
-            let RunningTracker { key, start_time } = self.running.as_ref().unwrap();
-            self.trackers.get_mut(key).unwrap().duration += start_time.elapsed();
+        if let Some(running) = &self.running {
+            *self.trackers.get_mut(&running.key).unwrap() += running;
         }
         self.running = None;
     }

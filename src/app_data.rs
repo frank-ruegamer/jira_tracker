@@ -8,10 +8,9 @@ use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 
 use crate::duration_serializer;
-use crate::instant_serializer::SerializableInstant;
+use crate::instant_serializer;
 
 #[derive(Debug, Clone, Responder)]
 pub struct OccupiedError {
@@ -41,11 +40,10 @@ impl AddAssign<&RunningTracker> for PausedTracker {
     }
 }
 
-#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 struct RunningTracker {
     key: String,
-    #[serde_as(as = "SerializableInstant")]
+    #[serde(with = "instant_serializer")]
     start_time: Instant,
 }
 

@@ -14,8 +14,7 @@ use crate::tempo_api::TempoApi;
 
 mod app_data;
 mod config;
-mod duration_serializer;
-mod instant_serializer;
+mod serde;
 mod tempo_api;
 
 #[get("/trackers")]

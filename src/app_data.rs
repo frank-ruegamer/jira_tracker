@@ -10,8 +10,7 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 use crate::config::write_state_file;
-use crate::duration_serializer;
-use crate::instant_serializer;
+use crate::serde::{duration_serializer, instant_serializer};
 
 #[derive(Debug, Clone, Responder)]
 pub struct OccupiedError {

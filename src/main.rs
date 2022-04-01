@@ -37,6 +37,11 @@ fn start(key: &str, app_data: &State<AppData>) -> Option<()> {
     app_data.start(key)
 }
 
+#[delete("/trackers")]
+fn clear(app_data: &State<AppData>) {
+    app_data.remove_all();
+}
+
 #[get("/tracker")]
 fn current(app_data: &State<AppData>) -> Option<Json<TrackerInformation>> {
     app_data.current().map(|tracker| Json(tracker))
@@ -61,7 +66,7 @@ async fn main() {
         .manage(TempoApi::new())
         .mount(
             "/",
-            routes![list, get, create, start, pause, current, submit],
+            routes![list, get, create, clear, start, pause, current, submit],
         )
         .launch()
         .await;

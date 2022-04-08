@@ -29,7 +29,11 @@ fn get(key: &str, app_data: &State<AppData>) -> Option<Json<TrackerInformation>>
 
 #[post("/trackers/<key>")]
 fn create(key: &str, app_data: &State<AppData>) -> Result<(), status::Conflict<()>> {
-    app_data.create_tracker(key).map_err(|_| status::Conflict(None))
+    app_data
+        .create_tracker(key)
+        .map_err(|_| status::Conflict(None))?;
+    app_data.start(key).unwrap();
+    Ok(())
 }
 
 #[post("/trackers/<key>/start")]

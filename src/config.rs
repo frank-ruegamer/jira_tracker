@@ -22,12 +22,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for LogError {
 }
 
 pub fn get_initial_state() -> AppData {
-    read_state_file().unwrap_or_else(|_| {
-        let state = AppData::new();
-        let _ = state.create_tracker("WEBAPP-121");
-        state.start("WEBAPP-121");
-        state
-    })
+    read_state_file().unwrap_or_else(|_| AppData::new())
 }
 
 pub fn read_state_file() -> Result<AppData, io::Error> {

@@ -10,7 +10,7 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 use crate::config::write_state_file;
-use crate::serde::{duration_serializer, instant_serializer};
+use crate::serde::{instant_serializer};
 
 #[derive(Debug, Clone, Responder)]
 pub struct OccupiedError {
@@ -59,7 +59,7 @@ impl RunningTracker {
 #[derive(Debug, Serialize)]
 pub struct TrackerInformation {
     key: String,
-    #[serde(with = "duration_serializer")]
+    #[serde(with = "humantime_serde")]
     duration: Duration,
 }
 

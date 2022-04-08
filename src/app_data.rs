@@ -61,6 +61,7 @@ pub struct TrackerInformation {
     key: String,
     #[serde(with = "humantime_serde")]
     duration: Duration,
+    running: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -93,27 +94,26 @@ impl InnerAppData {
             .map(|elapsed| Duration::from_secs(elapsed.as_secs()))
     }
 
+    fn get_information(&self, key: &str) -> TrackerInformation {
+        TrackerInformation {
+            key: key.to_owned(),
+            duration: self.elapsed_seconds(key).unwrap(),
+            running: self.running.as_ref().filter(|running| running.key == key).is_some(),
+        }
+    }
+
     fn current(&self) -> Option<TrackerInformation> {
-        self.running.as_ref().map(|r| TrackerInformation {
-            key: r.key.to_owned(),
-            duration: self.elapsed_seconds(&r.key).unwrap(),
-        })
+        self.running.as_ref().map(|running| self.get_information(&running.key))
     }
 
     fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {
-        self.trackers.get(key).map(|_| TrackerInformation {
-            key: key.to_owned(),
-            duration: self.elapsed_seconds(key).unwrap(),
-        })
+        self.trackers.get(key).map(|_| self.get_information(key))
     }
 
     fn list_trackers(&self) -> Vec<TrackerInformation> {
         self.trackers
             .keys()
-            .map(|key| TrackerInformation {
-                key: key.to_owned(),
-                duration: self.elapsed_seconds(key).unwrap(),
-            })
+            .map(|key| self.get_information(key))
             .collect()
     }
 

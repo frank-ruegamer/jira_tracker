@@ -24,6 +24,7 @@ struct SubmitWorklogBody {
     start_date: String,
     #[serde(rename = "startTime")]
     start_time: String,
+    description: Option<String>,
     #[serde(rename = "authorAccountId")]
     author_account_id: String,
 }
@@ -35,6 +36,7 @@ impl SubmitWorklogBody {
             time_spent_seconds: tracker.duration.as_secs(),
             start_date: tracker.start_time.format("%Y-%m-%d").to_string(),
             start_time: tracker.start_time.format("%H:%M:%S").to_string(),
+            description: tracker.description,
             author_account_id: author_account_id.to_string(),
         }
     }

@@ -20,6 +20,8 @@ pub struct OccupiedError {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PausedTracker {
     pub key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     pub duration: Duration,
     pub start_time: DateTime<Local>,
 }
@@ -28,6 +30,7 @@ impl PausedTracker {
     fn new(key: &str) -> Self {
         Self {
             key: key.to_string(),
+            description: None,
             duration: Duration::default(),
             start_time: Local::now(),
         }
@@ -59,6 +62,7 @@ impl RunningTracker {
 #[derive(Debug, Serialize)]
 pub struct TrackerInformation {
     key: String,
+    description: Option<String>,
     #[serde(with = "humantime_serde")]
     duration: Duration,
     running: bool,
@@ -94,9 +98,11 @@ impl InnerAppData {
             .map(|elapsed| Duration::from_secs(elapsed.as_secs()))
     }
 
+    /// It is assumed that a tracker with the key exists
     fn get_information(&self, key: &str) -> TrackerInformation {
         TrackerInformation {
             key: key.to_owned(),
+            description: self.trackers.get(key).unwrap().description.clone(),
             duration: self.elapsed_seconds(key).unwrap(),
             running: self.running.as_ref().filter(|running| running.key == key).is_some(),
         }

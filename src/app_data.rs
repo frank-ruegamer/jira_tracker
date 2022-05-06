@@ -10,7 +10,7 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 use crate::config::write_state_file;
-use crate::serde::{instant_serializer};
+use crate::serde::instant_serializer;
 
 #[derive(Debug, Clone, Responder)]
 pub struct OccupiedError {
@@ -104,12 +104,18 @@ impl InnerAppData {
             key: key.to_owned(),
             description: self.trackers.get(key).unwrap().description.clone(),
             duration: self.elapsed_seconds(key).unwrap(),
-            running: self.running.as_ref().filter(|running| running.key == key).is_some(),
+            running: self
+                .running
+                .as_ref()
+                .filter(|running| running.key == key)
+                .is_some(),
         }
     }
 
     fn current(&self) -> Option<TrackerInformation> {
-        self.running.as_ref().map(|running| self.get_information(&running.key))
+        self.running
+            .as_ref()
+            .map(|running| self.get_information(&running.key))
     }
 
     fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {
@@ -121,6 +127,13 @@ impl InnerAppData {
             .keys()
             .map(|key| self.get_information(key))
             .collect()
+    }
+
+    fn set_description(&mut self, key: &str, description: Option<String>) -> Option<()> {
+        let description = description.filter(|d| !d.is_empty());
+        self.trackers
+            .get_mut(key)
+            .map(|tracker| tracker.description = description)
     }
 
     fn start(&mut self, key: &str) -> Option<()> {
@@ -196,6 +209,10 @@ impl AppData {
 
     pub fn list_trackers(&self) -> Vec<TrackerInformation> {
         self.reading(|a| a.list_trackers())
+    }
+
+    pub fn set_description(&self, key: &str, description: Option<String>) -> Option<()> {
+        self.writing(|a| a.set_description(key, description))
     }
 
     pub fn start(&self, key: &str) -> Option<()> {

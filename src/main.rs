@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
+use ::serde::Deserialize;
 use rocket::http::Status;
 use rocket::response::status;
 use rocket::serde::json::Json;
@@ -41,6 +42,16 @@ fn start(key: &str, app_data: &State<AppData>) -> Option<()> {
     app_data.start(key)
 }
 
+#[derive(Debug, Deserialize)]
+struct AdjustDescriptionBody {
+    description: Option<String>,
+}
+
+#[put("/trackers/<key>", data = "<data>", rank = 2)]
+fn adjust(app_data: &State<AppData>, key: &str, data: Json<AdjustDescriptionBody>) -> Option<()> {
+    app_data.set_description(key, data.into_inner().description)
+}
+
 #[delete("/trackers/<key>")]
 fn delete(key: &str, app_data: &State<AppData>) -> Option<status::NoContent> {
     app_data.remove(key).map(|_| status::NoContent)
@@ -76,7 +87,7 @@ async fn main() {
         .manage(TempoApi::new())
         .mount(
             "/",
-            routes![list, get, create, delete, clear, start, pause, current, submit],
+            routes![list, get, create, adjust, delete, clear, start, pause, current, submit],
         )
         .launch()
         .await;

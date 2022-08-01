@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -eo pipefail
+
+RUNNING_ICON='▶'
+PAUSE_ICON='Ⅱ'
+NEW_ENTRY='+ Add New'
+SUBMIT_TRACKERS='Submit'
+
+DELETE_STATUS=10
+DESCRIPTION_STATUS=11
+OPEN_STATUS=12
+
+trackers=$(curl -s localhost:8000/trackers | jq 'sort_by(.key)')
+
+running_index=$(jq 'map(.running == true) | index(true)' <<< "${trackers}")
+
+entries=$(jq -r --argjson trackers "${trackers}" --arg running "${RUNNING_ICON}" --arg paused "${PAUSE_ICON}" \
+  '. + $trackers | group_by(.key) | map(add) | map(select(.duration)) | .[] | "\( if .running then $running else $paused end ) \( .key )|\( .fields.summary )|\( .duration )"' < ~/.jira/issues.json |\
+  sed -E 's/( [0-9][ms])/ \1/g' |\
+  awk -F '|' '{printf "%-15s %-34s %10s\n", $1, substr($2, 0, 30), $3}' |\
+  cat - <(echo "${NEW_ENTRY}"; echo "${SUBMIT_TRACKERS}"))
+
+if entry=$(echo "${entries}" | rofi -dmenu -i -width -64m -selected-row "${running_index}" -kb-delete-entry '' -kb-custom-1 'Shift+Delete' -kb-custom-2 'Alt+d' -kb-accept-alt '' -kb-custom-3 'Shift+Return,Shift+KP_Enter'); then
+  if [[ $entry == $NEW_ENTRY ]]; then
+    entry=$(rofi-jira | rofi -dmenu -i)
+    key=$(awk -F':' '{print $1}' <<< "${entry}")
+    curl -X POST "localhost:8000/trackers/${key}"
+  elif [[ $entry == $SUBMIT_TRACKERS ]]; then
+    curl -X POST "localhost:8000/submit"
+  else
+    key=$(awk '{print $2}' <<< "${entry}")
+    running=$(jq --arg key "${key}" '.[] | select(.key == $key) | .running' <<< "${trackers}")
+    if [[ $running == 'true' ]]; then
+      curl -X POST localhost:8000/tracker/pause
+    else
+      curl -X POST "localhost:8000/trackers/${key}/start"
+    fi
+  fi
+else
+  status="$?"
+  if [[ $status == $DELETE_STATUS ]]; then
+    key=$(awk '{print $2}' <<< "${entry}")
+    curl -X DELETE "localhost:8000/trackers/${key}"
+  elif [[ $status == $DESCRIPTION_STATUS ]]; then
+    key=$(awk '{print $2}' <<< "${entry}")
+    description=$(jq -r --arg key "${key}" '.[] | select(.key == $key).description | select(. != null)' <<< "${trackers}")
+    description=$(rofi -dmenu -lines 0 -p "Description of ${key}" -filter "${description}")
+    curl -X PUT -H "Content-Type: application/json" "localhost:8000/trackers/${key}" --data "{\"description\": \"${description}\"}"
+  elif [[ $status == $OPEN_STATUS ]]; then
+    key=$(awk '{print $2}' <<< "${entry}")
+    link="https://anevis.atlassian.net/browse/${key}"
+    xdg-open "${link}"
+  fi
+fi
+

@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
-use crate::config::write_state_file;
+use crate::config::{read_state_file, write_state_file};
 use crate::serde::instant_serializer;
 
 #[derive(Debug, Clone, Responder)]
@@ -187,16 +187,29 @@ impl AppData {
         Self(RwLock::new(InnerAppData::new()))
     }
 
-    fn reading<F: FnOnce(&InnerAppData) -> T, T>(&self, f: F) -> T {
+    fn reading<F, T>(&self, f: F) -> T
+    where
+        F: FnOnce(&InnerAppData) -> T,
+    {
         let AppData(inner) = self;
         f(inner.read().unwrap().deref())
     }
 
-    fn writing<F: FnOnce(&mut InnerAppData) -> T, T>(&self, f: F) -> T {
-        let AppData(inner) = self;
-        let result = f(inner.write().unwrap().deref_mut());
+    fn writing<F, T>(&self, f: F) -> T
+    where
+        F: FnOnce(&mut InnerAppData) -> T,
+    {
+        let result = self.writing_without_flush(f);
         write_state_file(self).unwrap();
         result
+    }
+
+    fn writing_without_flush<F, T>(&self, f: F) -> T
+    where
+        F: FnOnce(&mut InnerAppData) -> T,
+    {
+        let AppData(inner) = self;
+        f(inner.write().unwrap().deref_mut())
     }
 
     pub fn current(&self) -> Option<TrackerInformation> {
@@ -233,5 +246,9 @@ impl AppData {
 
     pub fn remove_all(&self) -> Vec<PausedTracker> {
         self.writing(|a| a.remove_all())
+    }
+
+    pub fn refresh_config(&self) {
+        self.writing_without_flush(|a| *a = read_state_file().unwrap())
     }
 }

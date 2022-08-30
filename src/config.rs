@@ -75,5 +75,6 @@ where
 
 fn get_config_file() -> PathBuf {
     let file_name = env::var(JSON_FILE).unwrap();
-    PathBuf::from(file_name)
+    let expanded_path = shellexpand::full(&file_name).unwrap();
+    PathBuf::from(expanded_path.into_owned())
 }

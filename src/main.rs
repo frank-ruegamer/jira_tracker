@@ -76,7 +76,7 @@ fn current(app_data: &AppState) -> Option<Json<TrackerInformation>> {
 
 #[post("/tracker/pause")]
 fn pause(app_data: &AppState) {
-    app_data.pause();
+    app_data.pause()
 }
 
 #[post("/submit")]

@@ -249,7 +249,7 @@ impl AppData {
         self.writing(|a| a.remove_all())
     }
 
-    pub fn refresh_config(&self) {
+    pub fn reload_state(&self) {
         self.writing_without_flush(|a| *a = read_state_file().unwrap())
     }
 }

@@ -34,14 +34,14 @@ pub fn read_state_file<F>() -> Result<F, io::Error>
 where
     F: DeserializeOwned,
 {
-    let file = File::open(get_config_file())?;
+    let file = File::open(get_state_file())?;
     let reader = BufReader::new(file);
     let app_data = serde_json::from_reader(reader)?;
     Ok(app_data)
 }
 
 pub fn write_state_file(app_data: &AppData) -> Result<(), io::Error> {
-    let file_path = get_config_file();
+    let file_path = get_state_file();
     let parent_directory = file_path.parent().unwrap();
     fs::create_dir_all(parent_directory)?;
     let file = File::create(file_path)?;
@@ -52,11 +52,11 @@ pub fn write_state_file(app_data: &AppData) -> Result<(), io::Error> {
     Ok(())
 }
 
-pub fn watch_config_file<F>(f: F) -> Hotwatch
+pub fn watch_state_file<F>(f: F) -> Hotwatch
 where
     F: 'static + Fn() + Send,
 {
-    let watched_path = get_config_file();
+    let watched_path = get_state_file();
     let mut hotwatch = Hotwatch::new_with_custom_delay(Duration::from_secs(1)).unwrap();
     hotwatch
         .watch(
@@ -73,7 +73,7 @@ where
     hotwatch
 }
 
-fn get_config_file() -> PathBuf {
+fn get_state_file() -> PathBuf {
     let file_name = env::var(JSON_FILE).unwrap();
     let expanded_path = shellexpand::full(&file_name).unwrap();
     PathBuf::from(expanded_path.into_owned())

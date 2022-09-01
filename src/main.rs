@@ -11,7 +11,7 @@ use rocket::serde::json::Json;
 use rocket::State;
 
 use app_data::AppData;
-use config::{watch_config_file, LogError};
+use config::{watch_state_file, LogError};
 
 use crate::app_data::TrackerInformation;
 use crate::config::get_initial_state;
@@ -94,7 +94,7 @@ async fn main() {
     let state = Arc::new(get_initial_state());
     let cloned_state = state.clone();
 
-    let _hotwatch = watch_config_file(move || cloned_state.refresh_config());
+    let _hotwatch = watch_state_file(move || cloned_state.reload_state());
 
     let _ = rocket::build()
         .manage(state)

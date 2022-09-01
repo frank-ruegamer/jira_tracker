@@ -6,13 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = { version = "0.4.19", features = ["serde"] }
-futures = "0.3.21"
+chrono = { version = "0.4.22", features = ["serde"] }
+futures = "= 0.3.21"
 hotwatch = "0.4.6"
 humantime = "2.1.0"
 humantime-serde = "1.1.1"
-reqwest = { version = "0.11.9", features = ["json"] }
-rocket = { version = "0.5.0-rc.1", features = ["json"] }
-serde = "1.0.130"
-serde_json = "1.0.72"
+reqwest = { version = "0.11.11", features = ["json"] }
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+serde = "1.0.144"
+serde_json = "1.0.85"
 shellexpand = "2.1.2"

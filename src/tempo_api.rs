@@ -6,8 +6,8 @@ use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::Serialize;
 
-use crate::app_data::PausedTracker;
 use crate::config::{JIRA_ACCOUNT_ID, TEMPO_API_TOKEN};
+use crate::TrackerInformation;
 
 pub struct TempoApi {
     client: reqwest::Client,
@@ -29,15 +29,18 @@ struct SubmitWorklogBody {
     author_account_id: String,
 }
 
-impl SubmitWorklogBody {
-    fn from(tracker: PausedTracker, author_account_id: &str) -> Self {
-        SubmitWorklogBody {
+impl<ID> From<(TrackerInformation, ID)> for SubmitWorklogBody
+where
+    ID: Into<String>,
+{
+    fn from((tracker, author_account_id): (TrackerInformation, ID)) -> Self {
+        Self {
             issue_key: tracker.key,
             time_spent_seconds: tracker.duration.as_secs(),
             start_date: tracker.start_time.format("%Y-%m-%d").to_string(),
             start_time: tracker.start_time.format("%H:%M:%S").to_string(),
             description: tracker.description,
-            author_account_id: author_account_id.to_string(),
+            author_account_id: author_account_id.into(),
         }
     }
 }
@@ -64,8 +67,8 @@ impl TempoApi {
         }
     }
 
-    pub async fn submit(&self, tracker: PausedTracker) -> Result<(), Box<dyn Error>> {
-        let request: SubmitWorklogBody = SubmitWorklogBody::from(tracker, &self.jira_account_id);
+    pub async fn submit(&self, tracker: TrackerInformation) -> Result<(), Box<dyn Error>> {
+        let request: SubmitWorklogBody = (tracker, &self.jira_account_id).into();
         let builder = self
             .client
             .post("https://api.tempo.io/core/3/worklogs")
@@ -74,7 +77,10 @@ impl TempoApi {
         Ok(())
     }
 
-    pub async fn submit_all(&self, trackers: Vec<PausedTracker>) -> Result<(), Box<dyn Error>> {
+    pub async fn submit_all(
+        &self,
+        trackers: Vec<TrackerInformation>,
+    ) -> Result<(), Box<dyn Error>> {
         let results: Vec<_> = trackers
             .into_iter()
             .map(|tracker| self.submit(tracker))

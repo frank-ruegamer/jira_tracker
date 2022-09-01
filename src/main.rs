@@ -81,8 +81,11 @@ fn pause(app_data: &AppState) {
 
 #[post("/submit")]
 async fn submit(app_data: &AppState, api: &State<TempoApi>) -> Result<(), LogError> {
-    api.submit_all(app_data.remove_all())
+    api.submit_all(app_data.list_trackers())
         .await
+        .map(|_| {
+            app_data.remove_all();
+        })
         .map_err(|e| LogError(e))
 }
 

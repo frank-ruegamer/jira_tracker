@@ -6,11 +6,13 @@ use std::time::Duration;
 use std::{env, fs, io};
 
 use hotwatch::Hotwatch;
+use hotwatch::notify::DebouncedEvent;
 use rocket::response::Responder;
 use rocket::{Request, Response};
+use rocket::http::Status;
 use serde::de::DeserializeOwned;
 
-use crate::{AppData, DebouncedEvent, Status};
+use crate::app_data::AppData;
 
 pub const JIRA_ACCOUNT_ID: &str = "JIRA_ACCOUNT_ID";
 pub const TEMPO_API_TOKEN: &str = "TEMPO_API_TOKEN";

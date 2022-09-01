@@ -3,11 +3,11 @@ use std::error::Error;
 
 use futures::future::try_join_all;
 use reqwest;
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
 use serde::Serialize;
 
+use crate::app_data::TrackerInformation;
 use crate::config::{JIRA_ACCOUNT_ID, TEMPO_API_TOKEN};
-use crate::TrackerInformation;
 
 pub struct TempoApi {
     client: reqwest::Client,

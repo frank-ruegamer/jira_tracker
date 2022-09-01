@@ -159,8 +159,7 @@ impl InnerAppData {
                 key: key.to_string(),
             });
         }
-        self.trackers
-            .insert(key.to_string(), PausedTracker::new());
+        self.trackers.insert(key.to_string(), PausedTracker::new());
         Ok(())
     }
 

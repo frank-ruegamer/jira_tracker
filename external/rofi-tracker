@@ -24,7 +24,7 @@ entries=$(jq -r --argjson trackers "${trackers}" --arg running "${RUNNING_ICON}"
   awk -F '|' '{printf "%-15s %-34s %10s\n", $1, substr($2, 0, 30), $3}' |\
   cat - <(echo "${NEW_ENTRY}"; echo "${REFRESH_ISSUES}"; echo "${SUBMIT_TRACKERS}"))
 
-if entry=$(echo "${entries}" | rofi -dmenu -i -width -64m -a -1 -selected-row "${running_index}" -no-custom -kb-delete-entry '' -kb-custom-1 'Shift+Delete' -kb-custom-2 'Alt+d' -kb-accept-alt '' -kb-custom-3 'Shift+Return,Shift+KP_Enter'); then
+if entry=$(echo "${entries}" | rofi -dmenu -i -width -64m -selected-row "${running_index}" -no-custom -kb-delete-entry '' -kb-custom-1 'Shift+Delete' -kb-custom-2 'Alt+d' -kb-accept-alt '' -kb-custom-3 'Shift+Return,Shift+KP_Enter'); then
   if [[ $entry == $NEW_ENTRY ]]; then
     entry=$(rofi-jira | rofi -dmenu -i)
     key=$(awk -F':' '{print $1}' <<< "${entry}")

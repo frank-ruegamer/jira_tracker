@@ -7,14 +7,28 @@ use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Local};
+use regex::Regex;
+use rocket::http::Status;
+use rocket::Request;
+use rocket::response::Responder;
 use serde::{Deserialize, Serialize};
 
 use crate::config::{read_state_file, write_state_file};
 use crate::serde::instant_serializer;
 
-#[derive(Debug, Clone, Responder)]
-pub struct OccupiedError {
-    key: String,
+#[derive(Debug)]
+pub enum CreationError {
+    KeyFormatError,
+    OccupiedError,
+}
+
+impl<'r> Responder<'r, 'static> for CreationError {
+    fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'static> {
+        match self {
+            CreationError::KeyFormatError => Err(Status::BadRequest),
+            CreationError::OccupiedError => Err(Status::Conflict),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -153,11 +167,12 @@ impl InnerAppData {
         self.running = None;
     }
 
-    fn create_tracker(&mut self, key: &str) -> Result<(), OccupiedError> {
+    fn create_tracker(&mut self, key: &str) -> Result<(), CreationError> {
+        if !Regex::new(r"\w+-\d+").unwrap().is_match(key) {
+            return Err(CreationError::KeyFormatError);
+        }
         if self.trackers.contains_key(key) {
-            return Err(OccupiedError {
-                key: key.to_string(),
-            });
+            return Err(CreationError::OccupiedError);
         }
         self.trackers.insert(key.to_string(), PausedTracker::new());
         Ok(())
@@ -236,7 +251,7 @@ impl AppData {
         self.writing(|a| a.pause())
     }
 
-    pub fn create_tracker(&self, key: &str) -> Result<(), OccupiedError> {
+    pub fn create_tracker(&self, key: &str) -> Result<(), CreationError> {
         self.writing(|a| a.create_tracker(key))
     }
 

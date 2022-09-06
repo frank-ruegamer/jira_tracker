@@ -5,7 +5,7 @@ use rocket::serde::json::Json;
 use rocket::{Route, State};
 use serde::Deserialize;
 
-use crate::app_data::{AppData, TrackerInformation};
+use crate::app_data::{AppData, CreationError, TrackerInformation};
 use crate::config::LogError;
 use crate::TempoApi;
 
@@ -22,10 +22,8 @@ fn get(key: &str, app_data: &AppState) -> Option<Json<TrackerInformation>> {
 }
 
 #[post("/trackers/<key>")]
-fn create(key: &str, app_data: &AppState) -> Result<(), status::Conflict<()>> {
-    app_data
-        .create_tracker(key)
-        .map_err(|_| status::Conflict(None))?;
+fn create(key: &str, app_data: &AppState) -> Result<(), CreationError> {
+    app_data.create_tracker(key)?;
     app_data.start(key).unwrap();
     Ok(())
 }

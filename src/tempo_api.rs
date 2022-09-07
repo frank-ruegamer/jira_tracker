@@ -1,5 +1,6 @@
 use std::env;
 use std::error::Error;
+use std::time::Duration;
 
 use futures::future::try_join_all;
 use reqwest;
@@ -83,6 +84,7 @@ impl TempoApi {
     ) -> Result<(), Box<dyn Error>> {
         let results: Vec<_> = trackers
             .into_iter()
+            .filter(|tracker| tracker.duration >= Duration::from_secs(60))
             .map(|tracker| self.submit(tracker))
             .collect();
         try_join_all(results).await.map(|_| ())

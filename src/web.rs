@@ -1,9 +1,10 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use rocket::response::status;
 use rocket::serde::json::Json;
 use rocket::{Route, State};
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 use crate::app_data::{AppData, CreationError, TrackerInformation};
 use crate::config::LogError;
@@ -64,6 +65,17 @@ fn pause(app_data: &AppState) {
     app_data.pause()
 }
 
+#[derive(Debug, Serialize)]
+struct SumResponse {
+    #[serde(with = "humantime_serde")]
+    duration: Duration,
+}
+
+#[get("/sum")]
+fn sum(app_data: &AppState) -> Json<SumResponse> {
+    Json(SumResponse {duration: app_data.sum()})
+}
+
 #[post("/submit")]
 async fn submit(app_data: &AppState, api: &State<TempoApi>) -> Result<(), LogError> {
     api.submit_all(app_data.list_trackers())
@@ -75,5 +87,5 @@ async fn submit(app_data: &AppState, api: &State<TempoApi>) -> Result<(), LogErr
 }
 
 pub fn routes() -> Vec<Route> {
-    routes![list, get, create, adjust, delete, clear, start, pause, current, submit]
+    routes![list, get, create, adjust, delete, clear, start, pause, current, sum, submit]
 }

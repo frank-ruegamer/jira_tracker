@@ -192,6 +192,10 @@ impl InnerAppData {
             .map(|key| self.trackers.remove(key).unwrap())
             .collect()
     }
+
+    fn sum(&self) -> Duration {
+        self.list_trackers().into_iter().map(|t| t.duration).sum()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -261,6 +265,10 @@ impl AppData {
 
     pub fn remove_all(&self) -> Vec<PausedTracker> {
         self.writing(|a| a.remove_all())
+    }
+
+    pub fn sum(&self) -> Duration {
+        self.reading(|a| a.sum())
     }
 
     pub fn reload_state(&self) {

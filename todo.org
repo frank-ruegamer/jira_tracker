@@ -1,0 +1,9 @@
+* TODOS
+
+* DONE preserve trackers before submitting in case of errors
+* DONE remove ~key~ property from trackers
+* TODO Use ~SystemTime~ instead of ~Instant~, because of Windows
+* TODO Native duration addition and deletion
+* DONE check on correct jira format
+* DONE filter trackers < 1 min before submitting
+* TODO allow multiple trackers with the same JIRA key

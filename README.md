@@ -56,3 +56,7 @@ Environment="JSON_FILE=~/.local/share/jira-tracker/file.json"
 ### HTTP API
 
 Have a look in `src/web.rs`
+
+## Known Issues
+
+- Windows not 100% compatible, file state does not survive restarts because `Instant` in Windows is dependent on system start time

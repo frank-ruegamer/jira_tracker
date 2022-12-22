@@ -18,7 +18,7 @@ Build with `cargo build --release` and put in PATH e.g. `~/bin`
 
 ### Systemd Service
 
-Systemd user service in `~/.config/$HOME/systemd/user`
+Systemd user service in `~/.config/systemd/user`
 
 ```ini
 [Service]

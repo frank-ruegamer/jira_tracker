@@ -1,10 +1,10 @@
-use std::env;
 use std::error::Error;
+use std::ops::Deref;
 use std::time::Duration;
 
 use futures::future::try_join_all;
 use reqwest;
-use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::Serialize;
 
 use crate::app_data::TrackerInformation;
@@ -48,10 +48,9 @@ where
 
 impl TempoApi {
     pub fn new() -> Self {
-        let jira_account_id = env::var(JIRA_ACCOUNT_ID).unwrap();
-        let tempo_api_token = env::var(TEMPO_API_TOKEN).unwrap();
-        let mut authorization_value: HeaderValue =
-            format!("Bearer {}", tempo_api_token).parse().unwrap();
+        let mut authorization_value: HeaderValue = format!("Bearer {}", TEMPO_API_TOKEN.deref())
+            .parse()
+            .unwrap();
         authorization_value.set_sensitive(true);
 
         let mut headers = HeaderMap::new();
@@ -64,7 +63,7 @@ impl TempoApi {
 
         Self {
             client,
-            jira_account_id,
+            jira_account_id: JIRA_ACCOUNT_ID.clone(),
         }
     }
 

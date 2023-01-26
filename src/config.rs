@@ -1,23 +1,35 @@
 use std::error::Error;
+use std::ffi::OsStr;
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::{env, fs, io};
 
-use hotwatch::Hotwatch;
 use hotwatch::notify::DebouncedEvent;
+use hotwatch::Hotwatch;
+use rocket::http::Status;
 use rocket::response::Responder;
 use rocket::{Request, Response};
-use rocket::http::Status;
 use serde::de::DeserializeOwned;
+use static_init::dynamic;
 
 use crate::app_data::AppData;
 
-pub const JIRA_ACCOUNT_ID: &str = "JIRA_ACCOUNT_ID";
-pub const TEMPO_API_TOKEN: &str = "TEMPO_API_TOKEN";
+fn env_var<K: Display + AsRef<OsStr>>(key: K) -> String {
+    env::var(&key).unwrap_or_else(|_| panic!("env var `{}` not set", key))
+}
 
-const JSON_FILE: &str = "JSON_FILE";
+#[dynamic]
+pub static JIRA_ACCOUNT_ID: String = env_var("JIRA_ACCOUNT_ID");
+#[dynamic]
+pub static TEMPO_API_TOKEN: String = env_var("TEMPO_API_TOKEN");
+#[dynamic]
+static JSON_FILE: String = shellexpand::full(&env_var("JSON_FILE"))
+    .unwrap()
+    .into_owned();
 
 pub struct LogError(pub Box<dyn Error>);
 
@@ -76,7 +88,5 @@ where
 }
 
 fn get_state_file() -> PathBuf {
-    let file_name = env::var(JSON_FILE).unwrap();
-    let expanded_path = shellexpand::full(&file_name).unwrap();
-    PathBuf::from(expanded_path.into_owned())
+    PathBuf::from(JSON_FILE.deref())
 }

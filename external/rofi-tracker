@@ -30,7 +30,11 @@ if entry=$(echo "${entries}" | rofi -dmenu -i -width -64m -selected-row "${runni
     key=$(awk -F':' '{print $1}' <<< "${entry}")
     curl -X POST "localhost:8000/trackers/${key}"
   elif [[ $entry == $REFRESH_ISSUES ]]; then
-    jira_issues.py > "${ISSUES_FILE}"
+    if command -v sponge &> /dev/null; then
+      jira_issues.py | sponge "${ISSUES_FILE}"
+    else
+      jira_issues.py > "${ISSUES_FILE}"
+    fi
   elif [[ $entry == $SUBMIT_TRACKERS ]]; then
     curl -X POST "localhost:8000/submit"
   else

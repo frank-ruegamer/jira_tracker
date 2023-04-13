@@ -1,3 +1,5 @@
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt::Display;
@@ -10,9 +12,6 @@ use std::{env, fs, io};
 
 use hotwatch::notify::DebouncedEvent;
 use hotwatch::Hotwatch;
-use rocket::http::Status;
-use rocket::response::Responder;
-use rocket::{Request, Response};
 use serde::de::DeserializeOwned;
 use static_init::dynamic;
 
@@ -31,12 +30,22 @@ static JSON_FILE: String = shellexpand::full(&env_var("JSON_FILE"))
     .unwrap()
     .into_owned();
 
-pub struct LogError(pub Box<dyn Error>);
+pub struct LogError(Box<dyn Error>);
 
-impl<'r, 'o: 'r> Responder<'r, 'o> for LogError {
-    fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'o> {
-        println!("Internal Server Error: {}", self.0);
-        Response::build().status(Status::InternalServerError).ok()
+impl<E> From<E> for LogError
+where
+    E: Error + 'static,
+{
+    fn from(value: E) -> Self {
+        LogError(Box::new(value))
+    }
+}
+
+impl IntoResponse for LogError {
+    fn into_response(self) -> Response {
+        let LogError(error) = self;
+        eprintln!("Internal Server Error: {}", error);
+        StatusCode::INTERNAL_SERVER_ERROR.into_response()
     }
 }
 

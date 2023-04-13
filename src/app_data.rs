@@ -1,3 +1,5 @@
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use core::option::Option;
 use core::result::Result;
 use core::result::Result::{Err, Ok};
@@ -8,26 +10,26 @@ use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Local};
 use regex::Regex;
-use rocket::http::Status;
-use rocket::Request;
-use rocket::response::Responder;
 use serde::{Deserialize, Serialize};
 
 use crate::config::{read_state_file, write_state_file};
 use crate::serde::instant_serializer;
 
 #[derive(Debug)]
-pub enum CreationError {
+pub enum TrackerError {
     KeyFormatError,
     OccupiedError,
+    NotFoundError,
 }
 
-impl<'r> Responder<'r, 'static> for CreationError {
-    fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'static> {
-        match self {
-            CreationError::KeyFormatError => Err(Status::BadRequest),
-            CreationError::OccupiedError => Err(Status::Conflict),
-        }
+impl IntoResponse for TrackerError {
+    fn into_response(self) -> Response {
+        let status_code = match self {
+            TrackerError::KeyFormatError => StatusCode::BAD_REQUEST,
+            TrackerError::OccupiedError => StatusCode::CONFLICT,
+            TrackerError::NotFoundError => StatusCode::NOT_FOUND,
+        };
+        status_code.into_response()
     }
 }
 
@@ -127,14 +129,18 @@ impl InnerAppData {
         }
     }
 
-    fn current(&self) -> Option<TrackerInformation> {
+    fn current(&self) -> Result<TrackerInformation, TrackerError> {
         self.running
             .as_ref()
             .map(|running| self.get_information(&running.key))
+            .ok_or(TrackerError::NotFoundError)
     }
 
-    fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {
-        self.trackers.get(key).map(|_| self.get_information(key))
+    fn get_tracker(&self, key: &str) -> Result<TrackerInformation, TrackerError> {
+        self.trackers
+            .get(key)
+            .map(|_| self.get_information(key))
+            .ok_or(TrackerError::NotFoundError)
     }
 
     fn list_trackers(&self) -> Vec<TrackerInformation> {
@@ -144,20 +150,25 @@ impl InnerAppData {
             .collect()
     }
 
-    fn set_description(&mut self, key: &str, description: Option<String>) -> Option<()> {
+    fn set_description(
+        &mut self,
+        key: &str,
+        description: Option<String>,
+    ) -> Result<(), TrackerError> {
         let description = description.filter(|d| !d.is_empty());
         self.trackers
             .get_mut(key)
             .map(|tracker| tracker.description = description)
+            .ok_or(TrackerError::NotFoundError)
     }
 
-    fn start(&mut self, key: &str) -> Option<()> {
+    fn start(&mut self, key: &str) -> Result<(), TrackerError> {
         if !self.trackers.contains_key(key) {
-            return None;
+            return Err(TrackerError::NotFoundError);
         }
         self.pause();
         self.running = Some(RunningTracker::new(key));
-        Some(())
+        Ok(())
     }
 
     fn pause(&mut self) {
@@ -167,22 +178,22 @@ impl InnerAppData {
         self.running = None;
     }
 
-    fn create_tracker(&mut self, key: &str) -> Result<(), CreationError> {
+    fn create_tracker(&mut self, key: &str) -> Result<(), TrackerError> {
         if !Regex::new(r"\w+-\d+").unwrap().is_match(key) {
-            return Err(CreationError::KeyFormatError);
+            return Err(TrackerError::KeyFormatError);
         }
         if self.trackers.contains_key(key) {
-            return Err(CreationError::OccupiedError);
+            return Err(TrackerError::OccupiedError);
         }
         self.trackers.insert(key.to_string(), PausedTracker::new());
         Ok(())
     }
 
-    fn remove(&mut self, key: &str) -> Option<PausedTracker> {
+    fn remove(&mut self, key: &str) -> Result<PausedTracker, TrackerError> {
         if self.running.as_ref().filter(|t| t.key == key).is_some() {
             self.pause();
         }
-        self.trackers.remove(key)
+        self.trackers.remove(key).ok_or(TrackerError::NotFoundError)
     }
 
     fn remove_all(&mut self) -> Vec<PausedTracker> {
@@ -231,11 +242,11 @@ impl AppData {
         f(inner.write().unwrap().deref_mut())
     }
 
-    pub fn current(&self) -> Option<TrackerInformation> {
+    pub fn current(&self) -> Result<TrackerInformation, TrackerError> {
         self.reading(|a| a.current())
     }
 
-    pub fn get_tracker(&self, key: &str) -> Option<TrackerInformation> {
+    pub fn get_tracker(&self, key: &str) -> Result<TrackerInformation, TrackerError> {
         self.reading(|a| a.get_tracker(key))
     }
 
@@ -243,11 +254,15 @@ impl AppData {
         self.reading(|a| a.list_trackers())
     }
 
-    pub fn set_description(&self, key: &str, description: Option<String>) -> Option<()> {
+    pub fn set_description(
+        &self,
+        key: &str,
+        description: Option<String>,
+    ) -> Result<(), TrackerError> {
         self.writing(|a| a.set_description(key, description))
     }
 
-    pub fn start(&self, key: &str) -> Option<()> {
+    pub fn start(&self, key: &str) -> Result<(), TrackerError> {
         self.writing(|a| a.start(key))
     }
 
@@ -255,11 +270,11 @@ impl AppData {
         self.writing(|a| a.pause())
     }
 
-    pub fn create_tracker(&self, key: &str) -> Result<(), CreationError> {
+    pub fn create_tracker(&self, key: &str) -> Result<(), TrackerError> {
         self.writing(|a| a.create_tracker(key))
     }
 
-    pub fn remove(&self, key: &str) -> Option<PausedTracker> {
+    pub fn remove(&self, key: &str) -> Result<PausedTracker, TrackerError> {
         self.writing(|a| a.remove(key))
     }
 

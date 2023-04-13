@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::ops::Deref;
 use std::time::Duration;
 
@@ -67,7 +66,7 @@ impl TempoApi {
         }
     }
 
-    pub async fn submit(&self, tracker: TrackerInformation) -> Result<(), Box<dyn Error>> {
+    pub async fn submit(&self, tracker: TrackerInformation) -> Result<(), reqwest::Error> {
         let request: SubmitWorklogBody = (tracker, &self.jira_account_id).into();
         let builder = self
             .client
@@ -80,7 +79,7 @@ impl TempoApi {
     pub async fn submit_all(
         &self,
         trackers: Vec<TrackerInformation>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), reqwest::Error> {
         let results: Vec<_> = trackers
             .into_iter()
             .filter(|tracker| tracker.duration >= Duration::from_secs(60))

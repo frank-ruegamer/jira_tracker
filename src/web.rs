@@ -1,37 +1,43 @@
+use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rocket::response::status;
-use rocket::serde::json::Json;
-use rocket::{Route, State};
-use serde::{Serialize, Deserialize};
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use serde::{Deserialize, Serialize};
 
-use crate::app_data::{AppData, CreationError, TrackerInformation};
+use crate::app_data::{AppData, TrackerError, TrackerInformation};
 use crate::config::LogError;
-use crate::TempoApi;
+use crate::tempo_api::TempoApi;
+use crate::AppState;
 
-type AppState = State<Arc<AppData>>;
-
-#[get("/trackers")]
-fn list(app_data: &AppState) -> Json<Vec<TrackerInformation>> {
-    Json(app_data.list_trackers())
+async fn list(State(state): State<Arc<AppData>>) -> Json<Vec<TrackerInformation>> {
+    Json(state.list_trackers())
 }
 
-#[get("/trackers/<key>")]
-fn get(key: &str, app_data: &AppState) -> Option<Json<TrackerInformation>> {
-    app_data.get_tracker(key).map(|tracker| Json(tracker))
+async fn get_tracker(
+    Path(key): Path<String>,
+    State(state): State<Arc<AppData>>,
+) -> Result<Json<TrackerInformation>, TrackerError> {
+    state.get_tracker(&key).map(Json)
 }
 
-#[post("/trackers/<key>")]
-fn create(key: &str, app_data: &AppState) -> Result<(), CreationError> {
-    app_data.create_tracker(key)?;
-    app_data.start(key).unwrap();
+async fn create(
+    Path(key): Path<String>,
+    State(state): State<Arc<AppData>>,
+) -> Result<(), TrackerError> {
+    state.create_tracker(&key)?;
+    state.start(&key).unwrap();
     Ok(())
 }
 
-#[post("/trackers/<key>/start")]
-fn start(key: &str, app_data: &AppState) -> Option<()> {
-    app_data.start(key)
+async fn start(
+    Path(key): Path<String>,
+    State(state): State<Arc<AppData>>,
+) -> Result<(), TrackerError> {
+    state.start(&key)
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,30 +45,34 @@ struct AdjustDescriptionBody {
     description: Option<String>,
 }
 
-#[put("/trackers/<key>", data = "<data>", rank = 2)]
-fn adjust(app_data: &AppState, key: &str, data: Json<AdjustDescriptionBody>) -> Option<()> {
-    app_data.set_description(key, data.into_inner().description)
+async fn adjust(
+    Path(key): Path<String>,
+    State(state): State<Arc<AppData>>,
+    Json(data): Json<AdjustDescriptionBody>,
+) -> Result<(), TrackerError> {
+    state.set_description(&key, data.description)
 }
 
-#[delete("/trackers/<key>")]
-fn delete(key: &str, app_data: &AppState) -> Option<status::NoContent> {
-    app_data.remove(key).map(|_| status::NoContent)
+async fn delete(
+    Path(key): Path<String>,
+    State(state): State<Arc<AppData>>,
+) -> Result<StatusCode, TrackerError> {
+    state.remove(&key).map(|_| StatusCode::NO_CONTENT)
 }
 
-#[delete("/trackers")]
-fn clear(app_data: &AppState) -> status::NoContent {
-    app_data.remove_all();
-    status::NoContent
+async fn clear(State(state): State<Arc<AppData>>) -> StatusCode {
+    state.remove_all();
+    StatusCode::NO_CONTENT
 }
 
-#[get("/tracker")]
-fn current(app_data: &AppState) -> Option<Json<TrackerInformation>> {
-    app_data.current().map(|tracker| Json(tracker))
+async fn current(
+    State(state): State<Arc<AppData>>,
+) -> Result<Json<TrackerInformation>, TrackerError> {
+    state.current().map(Json)
 }
 
-#[post("/tracker/pause")]
-fn pause(app_data: &AppState) {
-    app_data.pause()
+async fn pause(State(state): State<Arc<AppData>>) {
+    state.pause()
 }
 
 #[derive(Debug, Serialize)]
@@ -71,21 +81,40 @@ struct SumResponse {
     duration: Duration,
 }
 
-#[get("/sum")]
-fn sum(app_data: &AppState) -> Json<SumResponse> {
-    Json(SumResponse {duration: app_data.sum()})
+async fn sum(State(state): State<Arc<AppData>>) -> Json<SumResponse> {
+    Json(SumResponse {
+        duration: state.sum(),
+    })
 }
 
-#[post("/submit")]
-async fn submit(app_data: &AppState, api: &State<TempoApi>) -> Result<(), LogError> {
-    api.submit_all(app_data.list_trackers())
+async fn submit(
+    State(state): State<Arc<AppData>>,
+    State(api): State<Arc<TempoApi>>,
+) -> Result<(), LogError> {
+    api.submit_all(state.list_trackers())
         .await
         .map(|_| {
-            app_data.remove_all();
+            state.remove_all();
         })
-        .map_err(|e| LogError(e))
+        .map_err(|e| e.into())
 }
 
-pub fn routes() -> Vec<Route> {
-    routes![list, get, create, adjust, delete, clear, start, pause, current, sum, submit]
+pub fn router() -> Router<AppState> {
+    let trackers_routes = Router::new()
+        .route("/", get(list).delete(clear))
+        .route(
+            "/:key",
+            get(get_tracker).post(create).put(adjust).delete(delete),
+        )
+        .route("/:key/start", post(start));
+
+    let tracker_routes = Router::new()
+        .route("/", get(current))
+        .route("/pause", post(pause));
+
+    Router::new()
+        .nest("/trackers", trackers_routes)
+        .nest("/tracker", tracker_routes)
+        .route("/sum", get(sum))
+        .route("/submit", post(submit))
 }

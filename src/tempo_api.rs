@@ -2,7 +2,6 @@ use std::ops::Deref;
 use std::time::Duration;
 
 use futures::future::try_join_all;
-use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::Serialize;
 

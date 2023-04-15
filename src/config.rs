@@ -6,7 +6,7 @@ use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::ops::Deref;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 use std::{env, fs, io};
 
@@ -75,23 +75,31 @@ pub fn write_state_file(app_data: &AppData) -> Result<(), io::Error> {
     Ok(())
 }
 
+#[must_use]
 pub fn watch_state_file<F>(f: F) -> Hotwatch
 where
     F: 'static + Fn() + Send,
 {
     let watched_path = get_state_file();
+    let parent = watched_path
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or(Path::new("."))
+        .canonicalize()
+        .unwrap_or_else(|_| panic!("Parent path for {} does not exist.", watched_path.display()));
     let mut hotwatch = Hotwatch::new_with_custom_delay(Duration::from_secs(1)).unwrap();
     hotwatch
-        .watch(
-            watched_path.canonicalize().unwrap().parent().unwrap(),
-            move |event| {
-                if let DebouncedEvent::Write(ref event_path) = event {
-                    if event_path.canonicalize().ok() == watched_path.canonicalize().ok() {
-                        f();
-                    }
+        .watch(parent, move |event| match event {
+            DebouncedEvent::Create(event_path)
+            | DebouncedEvent::Write(event_path)
+            | DebouncedEvent::Chmod(event_path)
+            | DebouncedEvent::Rename(_, event_path) => {
+                if event_path.canonicalize().ok() == watched_path.canonicalize().ok() {
+                    f();
                 }
-            },
-        )
+            }
+            _ => {}
+        })
         .unwrap();
     hotwatch
 }

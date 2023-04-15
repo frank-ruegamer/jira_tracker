@@ -5,7 +5,8 @@ use tracing_subscriber::filter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn logging_layer() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
+#[must_use]
+pub fn setup_logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
     let targets = filter::Targets::new()
         .with_target("tower_http::trace::on_request", Level::DEBUG)
         .with_target("tower_http::trace::make_span", Level::DEBUG)

@@ -9,6 +9,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use std::{env, fs, io};
+use tracing::info_span;
 
 use hotwatch::notify::DebouncedEvent;
 use hotwatch::Hotwatch;
@@ -81,6 +82,18 @@ where
     F: 'static + Fn() + Send,
 {
     let watched_path = get_state_file();
+
+    let span = info_span!(
+        "watch_state_file",
+        path = watched_path
+            .canonicalize()
+            .as_ref()
+            .unwrap_or(&watched_path)
+            .to_string_lossy()
+            .into_owned()
+    );
+    let _enter = span.clone().entered();
+
     let parent = watched_path
         .parent()
         .filter(|path| !path.as_os_str().is_empty())
@@ -96,6 +109,9 @@ where
             | DebouncedEvent::Rename(_, event_path) => {
                 if let Ok(path) = event_path.canonicalize() {
                     if Some(path) == watched_path.canonicalize().ok() {
+                        span.in_scope(|| {
+                            tracing::debug!("loading state from file");
+                        });
                         f();
                     }
                 }
@@ -103,6 +119,9 @@ where
             _ => {}
         })
         .unwrap();
+
+    tracing::debug!("started monitoring of state file");
+
     hotwatch
 }
 

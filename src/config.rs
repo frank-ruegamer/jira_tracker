@@ -94,8 +94,10 @@ where
             | DebouncedEvent::Write(event_path)
             | DebouncedEvent::Chmod(event_path)
             | DebouncedEvent::Rename(_, event_path) => {
-                if event_path.canonicalize().ok() == watched_path.canonicalize().ok() {
-                    f();
+                if let Ok(path) = event_path.canonicalize() {
+                    if Some(path) == watched_path.canonicalize().ok() {
+                        f();
+                    }
                 }
             }
             _ => {}

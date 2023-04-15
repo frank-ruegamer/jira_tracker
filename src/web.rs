@@ -91,12 +91,9 @@ async fn submit(
     State(state): State<Arc<AppData>>,
     State(api): State<Arc<TempoApi>>,
 ) -> Result<(), LogError> {
-    api.submit_all(state.list_trackers())
-        .await
-        .map(|_| {
-            state.remove_all();
-        })
-        .map_err(|e| e.into())
+    api.submit_all(state.list_trackers()).await?;
+    state.remove_all();
+    Ok(())
 }
 
 pub fn router() -> Router<AppState> {

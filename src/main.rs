@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use axum::extract::FromRef;
 use axum::Router;
+use tower_http::normalize_path::NormalizePathLayer;
 
 use crate::app_data::AppData;
 use crate::config::{get_initial_state, watch_state_file};
@@ -53,7 +54,10 @@ async fn main() {
 
     let _hotwatch = watch_state_file(move || cloned_state.reload_state());
 
-    let app: Router = web::router().layer(logging_layer).with_state(state);
+    let app: Router = web::router()
+        .layer(logging_layer)
+        .layer(NormalizePathLayer::trim_trailing_slash())
+        .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     tracing::debug!("listening on {}", addr);

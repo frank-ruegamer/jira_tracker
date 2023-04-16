@@ -154,21 +154,22 @@ impl InnerAppData {
         &mut self,
         key: &str,
         description: Option<String>,
-    ) -> Result<(), TrackerError> {
+    ) -> Result<TrackerInformation, TrackerError> {
         let description = description.filter(|d| !d.is_empty());
         self.trackers
             .get_mut(key)
             .map(|tracker| tracker.description = description)
-            .ok_or(TrackerError::NotFoundError)
+            .ok_or(TrackerError::NotFoundError)?;
+        Ok(self.get_information(key))
     }
 
-    fn start(&mut self, key: &str) -> Result<(), TrackerError> {
+    fn start(&mut self, key: &str) -> Result<TrackerInformation, TrackerError> {
         if !self.trackers.contains_key(key) {
             return Err(TrackerError::NotFoundError);
         }
         self.pause();
         self.running = Some(RunningTracker::new(key));
-        Ok(())
+        Ok(self.get_information(key))
     }
 
     fn pause(&mut self) {
@@ -178,7 +179,7 @@ impl InnerAppData {
         self.running = None;
     }
 
-    fn create_tracker(&mut self, key: &str) -> Result<(), TrackerError> {
+    fn create_tracker(&mut self, key: &str) -> Result<TrackerInformation, TrackerError> {
         if !Regex::new(r"\w+-\d+").unwrap().is_match(key) {
             return Err(TrackerError::KeyFormatError);
         }
@@ -186,7 +187,7 @@ impl InnerAppData {
             return Err(TrackerError::OccupiedError);
         }
         self.trackers.insert(key.to_string(), PausedTracker::new());
-        Ok(())
+        Ok(self.get_information(key))
     }
 
     fn remove(&mut self, key: &str) -> Result<PausedTracker, TrackerError> {
@@ -258,11 +259,11 @@ impl AppData {
         &self,
         key: &str,
         description: Option<String>,
-    ) -> Result<(), TrackerError> {
+    ) -> Result<TrackerInformation, TrackerError> {
         self.writing(|a| a.set_description(key, description))
     }
 
-    pub fn start(&self, key: &str) -> Result<(), TrackerError> {
+    pub fn start(&self, key: &str) -> Result<TrackerInformation, TrackerError> {
         self.writing(|a| a.start(key))
     }
 
@@ -270,7 +271,7 @@ impl AppData {
         self.writing(|a| a.pause())
     }
 
-    pub fn create_tracker(&self, key: &str) -> Result<(), TrackerError> {
+    pub fn create_tracker(&self, key: &str) -> Result<TrackerInformation, TrackerError> {
         self.writing(|a| a.create_tracker(key))
     }
 

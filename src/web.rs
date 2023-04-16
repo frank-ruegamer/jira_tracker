@@ -27,17 +27,17 @@ async fn get_tracker(
 async fn create(
     Path(key): Path<String>,
     State(state): State<Arc<AppData>>,
-) -> Result<(), TrackerError> {
+) -> Result<Json<TrackerInformation>, TrackerError> {
     state.create_tracker(&key)?;
-    state.start(&key).unwrap();
-    Ok(())
+    let tracker = state.start(&key).unwrap();
+    Ok(Json(tracker))
 }
 
 async fn start(
     Path(key): Path<String>,
     State(state): State<Arc<AppData>>,
-) -> Result<(), TrackerError> {
-    state.start(&key)
+) -> Result<Json<TrackerInformation>, TrackerError> {
+    state.start(&key).map(Json)
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,8 +49,8 @@ async fn adjust(
     Path(key): Path<String>,
     State(state): State<Arc<AppData>>,
     Json(data): Json<AdjustDescriptionBody>,
-) -> Result<(), TrackerError> {
-    state.set_description(&key, data.description)
+) -> Result<Json<TrackerInformation>, TrackerError> {
+    state.set_description(&key, data.description).map(Json)
 }
 
 async fn delete(

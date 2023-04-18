@@ -41,16 +41,38 @@ async fn start(
 }
 
 #[derive(Debug, Deserialize)]
-struct AdjustDescriptionBody {
-    description: Option<String>,
+#[serde(untagged, deny_unknown_fields)]
+enum AdjustTrackerBody {
+    SetDescription {
+        description: Option<String>,
+    },
+    PositiveDuration {
+        #[serde(rename = "plus", with = "humantime_serde")]
+        duration: Duration,
+    },
+    NegativeDuration {
+        #[serde(rename = "minus", with = "humantime_serde")]
+        duration: Duration,
+    },
 }
 
 async fn adjust(
     Path(key): Path<String>,
     State(state): State<Arc<AppData>>,
-    Json(data): Json<AdjustDescriptionBody>,
+    Json(body): Json<AdjustTrackerBody>,
 ) -> Result<Json<TrackerInformation>, TrackerError> {
-    state.set_description(&key, data.description).map(Json)
+    let tracker = match body {
+        AdjustTrackerBody::SetDescription { description } => {
+            state.set_description(&key, description)?
+        }
+        AdjustTrackerBody::PositiveDuration { duration } => {
+            state.adjust_positive_duration(&key, duration)?
+        }
+        AdjustTrackerBody::NegativeDuration { duration } => {
+            state.adjust_negative_duration(&key, duration)?
+        }
+    };
+    Ok(Json(tracker))
 }
 
 async fn delete(

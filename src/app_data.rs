@@ -1,5 +1,3 @@
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use core::option::Option;
 use core::result::Result;
 use core::result::Result::{Err, Ok};
@@ -8,6 +6,8 @@ use std::ops::{AddAssign, Deref, DerefMut};
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -20,6 +20,7 @@ pub enum TrackerError {
     KeyFormatError,
     OccupiedError,
     NotFoundError,
+    DurationAdjustmentError,
 }
 
 impl IntoResponse for TrackerError {
@@ -28,6 +29,7 @@ impl IntoResponse for TrackerError {
             TrackerError::KeyFormatError => StatusCode::BAD_REQUEST,
             TrackerError::OccupiedError => StatusCode::CONFLICT,
             TrackerError::NotFoundError => StatusCode::NOT_FOUND,
+            TrackerError::DurationAdjustmentError => StatusCode::BAD_REQUEST,
         };
         status_code.into_response()
     }
@@ -38,6 +40,10 @@ pub struct PausedTracker {
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     duration: Duration,
+    #[serde(default = "Vec::new", skip_serializing_if = "Vec::is_empty")]
+    positive_adjustments: Vec<Duration>,
+    #[serde(default = "Vec::new", skip_serializing_if = "Vec::is_empty")]
+    negative_adjustments: Vec<Duration>,
     start_time: DateTime<Local>,
 }
 
@@ -46,6 +52,8 @@ impl PausedTracker {
         Self {
             description: None,
             duration: Duration::default(),
+            positive_adjustments: Vec::new(),
+            negative_adjustments: Vec::new(),
             start_time: Local::now(),
         }
     }
@@ -104,7 +112,11 @@ impl InnerAppData {
                 .as_ref()
                 .filter(|r| r.key == key)
                 .map_or(Duration::ZERO, |r| r.start_time.elapsed());
-            tracker.duration + running_duration
+            let positive_adjustments_sum: Duration = tracker.positive_adjustments.iter().sum();
+            let negative_adjustments_sum: Duration = tracker.negative_adjustments.iter().sum();
+            let positive_duration_sum =
+                tracker.duration + running_duration + positive_adjustments_sum;
+            positive_duration_sum.saturating_sub(negative_adjustments_sum)
         })
     }
 
@@ -160,6 +172,36 @@ impl InnerAppData {
             .get_mut(key)
             .map(|tracker| tracker.description = description)
             .ok_or(TrackerError::NotFoundError)?;
+        Ok(self.get_information(key))
+    }
+
+    fn adjust_positive_duration(
+        &mut self,
+        key: &str,
+        duration: Duration,
+    ) -> Result<TrackerInformation, TrackerError> {
+        self.trackers
+            .get_mut(key)
+            .map(|tracker| tracker.positive_adjustments.push(duration))
+            .ok_or(TrackerError::NotFoundError)?;
+        Ok(self.get_information(key))
+    }
+
+    fn adjust_negative_duration(
+        &mut self,
+        key: &str,
+        duration: Duration,
+    ) -> Result<TrackerInformation, TrackerError> {
+        let elapsed = self.elapsed(key).ok_or(TrackerError::NotFoundError)?;
+        if duration > elapsed {
+            return Err(TrackerError::DurationAdjustmentError);
+        }
+
+        self.trackers
+            .get_mut(key)
+            .unwrap()
+            .negative_adjustments
+            .push(duration);
         Ok(self.get_information(key))
     }
 
@@ -261,6 +303,22 @@ impl AppData {
         description: Option<String>,
     ) -> Result<TrackerInformation, TrackerError> {
         self.writing(|a| a.set_description(key, description))
+    }
+
+    pub fn adjust_positive_duration(
+        &self,
+        key: &str,
+        duration: Duration,
+    ) -> Result<TrackerInformation, TrackerError> {
+        self.writing(|a| a.adjust_positive_duration(key, duration))
+    }
+
+    pub fn adjust_negative_duration(
+        &self,
+        key: &str,
+        duration: Duration,
+    ) -> Result<TrackerInformation, TrackerError> {
+        self.writing(|a| a.adjust_negative_duration(key, duration))
     }
 
     pub fn start(&self, key: &str) -> Result<TrackerInformation, TrackerError> {

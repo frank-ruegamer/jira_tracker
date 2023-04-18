@@ -7,3 +7,8 @@
 * DONE check on correct jira format
 * DONE filter trackers < 1 min before submitting
 * TODO allow multiple trackers with the same JIRA key
+* TODO GitHub CI
+* TODO fix hot reloading immediately after saving
+* DONE fix hot reloading if file does not exist
+* DONE return fitting bodies on certain mutation requests
+* TODO use AsRef in app data where a &key is needed

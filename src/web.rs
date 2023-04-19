@@ -47,13 +47,26 @@ enum AdjustTrackerBody {
         description: Option<String>,
     },
     PositiveDuration {
-        #[serde(rename = "plus", with = "humantime_serde")]
+        #[serde(
+            rename = "plus",
+            alias = "add",
+            alias = "increase",
+            with = "humantime_serde"
+        )]
         duration: Duration,
+        #[serde(alias = "from")]
         using: Option<String>,
     },
     NegativeDuration {
-        #[serde(rename = "minus", with = "humantime_serde")]
+        #[serde(
+            rename = "minus",
+            alias = "sub",
+            alias = "subtract",
+            alias = "decrease",
+            with = "humantime_serde"
+        )]
         duration: Duration,
+        #[serde(alias = "to")]
         using: Option<String>,
     },
 }

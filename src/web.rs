@@ -49,10 +49,12 @@ enum AdjustTrackerBody {
     PositiveDuration {
         #[serde(rename = "plus", with = "humantime_serde")]
         duration: Duration,
+        using: Option<String>,
     },
     NegativeDuration {
         #[serde(rename = "minus", with = "humantime_serde")]
         duration: Duration,
+        using: Option<String>,
     },
 }
 
@@ -65,11 +67,18 @@ async fn adjust(
         AdjustTrackerBody::SetDescription { description } => {
             state.set_description(&key, description)?
         }
-        AdjustTrackerBody::PositiveDuration { duration } => {
+        AdjustTrackerBody::PositiveDuration { duration, using } => {
+            if let Some(other_key) = using {
+                state.adjust_negative_duration(&other_key, duration)?;
+            }
             state.adjust_positive_duration(&key, duration)?
         }
-        AdjustTrackerBody::NegativeDuration { duration } => {
-            state.adjust_negative_duration(&key, duration)?
+        AdjustTrackerBody::NegativeDuration { duration, using } => {
+            let tracker = state.adjust_negative_duration(&key, duration)?;
+            if let Some(other_key) = using {
+                state.adjust_positive_duration(&other_key, duration)?;
+            }
+            tracker
         }
     };
     Ok(Json(tracker))

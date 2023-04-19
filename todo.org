@@ -3,7 +3,7 @@
 * DONE preserve trackers before submitting in case of errors
 * DONE remove ~key~ property from trackers
 * TODO Use ~SystemTime~ instead of ~Instant~, because of Windows
-* TODO Native duration addition and deletion
+* DONE Native duration addition and deletion
 * DONE check on correct jira format
 * DONE filter trackers < 1 min before submitting
 * TODO allow multiple trackers with the same JIRA key
@@ -12,3 +12,5 @@
 * DONE fix hot reloading if file does not exist
 * DONE return fitting bodies on certain mutation requests
 * TODO use AsRef in app data where a &key is needed
+* TODO add logging and panic when deserializing from state file failed
+* TODO fix rearranging of trackers when updating

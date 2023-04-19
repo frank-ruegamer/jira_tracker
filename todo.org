@@ -13,4 +13,5 @@
 * DONE return fitting bodies on certain mutation requests
 * TODO use AsRef in app data where a &key is needed
 * TODO add logging and panic when deserializing from state file failed
-* TODO fix rearranging of trackers when updating
+* TODO fix rearranging of trackers when updating, or sort at endpoint by start time
+* TODO configurable port via env variable

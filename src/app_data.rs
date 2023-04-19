@@ -1,7 +1,6 @@
 use core::option::Option;
 use core::result::Result;
 use core::result::Result::{Err, Ok};
-use std::collections::HashMap;
 use std::ops::{AddAssign, Deref, DerefMut};
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
@@ -9,6 +8,7 @@ use std::time::{Duration, Instant};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
+use indexmap::IndexMap;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -94,14 +94,14 @@ pub struct TrackerInformation {
 #[derive(Debug, Serialize, Deserialize)]
 struct InnerAppData {
     running: Option<RunningTracker>,
-    trackers: HashMap<String, PausedTracker>,
+    trackers: IndexMap<String, PausedTracker>,
 }
 
 impl InnerAppData {
     fn new() -> Self {
         Self {
             running: None,
-            trackers: HashMap::new(),
+            trackers: IndexMap::new(),
         }
     }
 
@@ -236,7 +236,9 @@ impl InnerAppData {
         if self.running.as_ref().filter(|t| t.key == key).is_some() {
             self.pause();
         }
-        self.trackers.remove(key).ok_or(TrackerError::NotFoundError)
+        self.trackers
+            .shift_remove(key)
+            .ok_or(TrackerError::NotFoundError)
     }
 
     fn remove_all(&mut self) -> Vec<PausedTracker> {

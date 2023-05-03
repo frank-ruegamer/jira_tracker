@@ -9,24 +9,24 @@ use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
 use crate::app_data::{AppData, TrackerError, TrackerInformation};
-use crate::config::LogError;
+use crate::config::{AppConfig, LogError};
 use crate::tempo_api::TempoApi;
 use crate::AppState;
 
-async fn list(State(state): State<Arc<AppData>>) -> Json<Vec<TrackerInformation>> {
+async fn list(State(state): State<Arc<AppData<'static>>>) -> Json<Vec<TrackerInformation>> {
     Json(state.list_trackers())
 }
 
 async fn get_tracker(
     Path(key): Path<String>,
-    State(state): State<Arc<AppData>>,
+    State(state): State<Arc<AppData<'static>>>,
 ) -> Result<Json<TrackerInformation>, TrackerError> {
     state.get_tracker(&key).map(Json)
 }
 
 async fn create(
     Path(key): Path<String>,
-    State(state): State<Arc<AppData>>,
+    State(state): State<Arc<AppData<'static>>>,
 ) -> Result<Json<TrackerInformation>, TrackerError> {
     state.create_tracker(&key)?;
     let tracker = state.start(&key).unwrap();
@@ -35,7 +35,7 @@ async fn create(
 
 async fn start(
     Path(key): Path<String>,
-    State(state): State<Arc<AppData>>,
+    State(state): State<Arc<AppData<'static>>>,
 ) -> Result<Json<TrackerInformation>, TrackerError> {
     state.start(&key).map(Json)
 }
@@ -73,7 +73,7 @@ enum AdjustTrackerBody {
 
 async fn adjust(
     Path(key): Path<String>,
-    State(state): State<Arc<AppData>>,
+    State(state): State<Arc<AppData<'static>>>,
     Json(body): Json<AdjustTrackerBody>,
 ) -> Result<Json<TrackerInformation>, TrackerError> {
     let tracker = match body {
@@ -99,23 +99,23 @@ async fn adjust(
 
 async fn delete(
     Path(key): Path<String>,
-    State(state): State<Arc<AppData>>,
+    State(state): State<Arc<AppData<'static>>>,
 ) -> Result<StatusCode, TrackerError> {
     state.remove(&key).map(|_| StatusCode::NO_CONTENT)
 }
 
-async fn clear(State(state): State<Arc<AppData>>) -> StatusCode {
+async fn clear(State(state): State<Arc<AppData<'static>>>) -> StatusCode {
     state.remove_all();
     StatusCode::NO_CONTENT
 }
 
 async fn current(
-    State(state): State<Arc<AppData>>,
+    State(state): State<Arc<AppData<'static>>>,
 ) -> Result<Json<TrackerInformation>, TrackerError> {
     state.current().map(Json)
 }
 
-async fn pause(State(state): State<Arc<AppData>>) {
+async fn pause(State(state): State<Arc<AppData<'static>>>) {
     state.pause()
 }
 
@@ -125,14 +125,14 @@ struct SumResponse {
     duration: Duration,
 }
 
-async fn sum(State(state): State<Arc<AppData>>) -> Json<SumResponse> {
+async fn sum(State(state): State<Arc<AppData<'static>>>) -> Json<SumResponse> {
     Json(SumResponse {
         duration: state.sum(),
     })
 }
 
 async fn submit(
-    State(state): State<Arc<AppData>>,
+    State(state): State<Arc<AppData<'static>>>,
     State(api): State<Arc<TempoApi>>,
 ) -> Result<(), LogError> {
     api.submit_all(state.list_trackers()).await?;
@@ -140,7 +140,7 @@ async fn submit(
     Ok(())
 }
 
-pub fn router() -> Router<AppState> {
+pub fn router() -> Router<AppState<'static>> {
     let trackers_routes = Router::new()
         .route("/", get(list).delete(clear))
         .route(

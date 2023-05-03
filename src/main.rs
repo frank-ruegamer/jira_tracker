@@ -1,14 +1,16 @@
 extern crate core;
 
 use std::net::SocketAddr;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use axum::extract::FromRef;
 use axum::Router;
+use hotwatch::Hotwatch;
 use tower_http::normalize_path::NormalizePathLayer;
 
 use crate::app_data::AppData;
-use crate::config::{get_initial_state, watch_state_file};
+use crate::config::AppConfig;
 use crate::tempo_api::TempoApi;
 
 mod app_data;
@@ -19,27 +21,30 @@ mod tempo_api;
 mod web;
 
 #[derive(Clone)]
-pub struct AppState {
-    data: Arc<AppData>,
+pub struct AppState<'a> {
+    data: Arc<AppData<'a>>,
     tempo_api: Arc<TempoApi>,
+    config: Arc<AppConfig>,
 }
 
-impl AppState {
-    fn new() -> Self {
+impl<'a> From<AppConfig> for AppState<'a> {
+    fn from(value: AppConfig) -> Self {
+        let config = Arc::new(value);
         AppState {
-            data: Arc::new(get_initial_state()),
-            tempo_api: Arc::new(TempoApi::new()),
+            data: Arc::new(AppData::from(config.clone().as_ref())),
+            tempo_api: Arc::new(TempoApi::from(config.clone().as_ref())),
+            config: config,
         }
     }
 }
 
-impl FromRef<AppState> for Arc<AppData> {
-    fn from_ref(input: &AppState) -> Self {
+impl<'a> FromRef<AppState<'a>> for Arc<AppData<'a>> {
+    fn from_ref(input: &AppState<'a>) -> Self {
         input.data.clone()
     }
 }
 
-impl FromRef<AppState> for Arc<TempoApi> {
+impl<'a> FromRef<AppState<'a>> for Arc<TempoApi> {
     fn from_ref(input: &AppState) -> Self {
         input.tempo_api.clone()
     }
@@ -49,10 +54,13 @@ impl FromRef<AppState> for Arc<TempoApi> {
 async fn main() {
     let logging_layer = logging::setup_logging();
 
-    let state = AppState::new();
+    let config = AppConfig::new();
+    let state = AppState::from(config);
     let cloned_state = state.data.clone();
 
-    let _hotwatch = watch_state_file(move || cloned_state.reload_state());
+    let _hotwatch = state
+        .config
+        .watch_state_file(move || cloned_state.reload_state());
 
     let app: Router = web::router()
         .layer(logging_layer)

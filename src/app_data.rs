@@ -5,6 +5,7 @@ use std::ops::{AddAssign, Deref, DerefMut};
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
+use crate::config::AppConfig;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
@@ -12,7 +13,6 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::config::{read_state_file, write_state_file};
 use crate::serde::instant_serializer;
 
 #[derive(Debug)]
@@ -254,19 +254,18 @@ impl InnerAppData {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AppData(RwLock<InnerAppData>);
+#[derive(Debug)]
+pub struct AppData<'a> {
+    inner: RwLock<InnerAppData>,
+    config: &'a AppConfig,
+}
 
-impl AppData {
-    pub fn new() -> Self {
-        Self(RwLock::new(InnerAppData::new()))
-    }
-
+impl<'a> AppData<'a> {
     fn reading<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&InnerAppData) -> T,
     {
-        let AppData(inner) = self;
+        let AppData { inner, .. } = self;
         f(inner.read().unwrap().deref())
     }
 
@@ -275,7 +274,7 @@ impl AppData {
         F: FnOnce(&mut InnerAppData) -> T,
     {
         let result = self.writing_without_flush(f);
-        write_state_file(self).unwrap();
+        self.config.write_state_file(&self.inner).unwrap();
         result
     }
 
@@ -283,7 +282,7 @@ impl AppData {
     where
         F: FnOnce(&mut InnerAppData) -> T,
     {
-        let AppData(inner) = self;
+        let AppData { inner, .. } = self;
         f(inner.write().unwrap().deref_mut())
     }
 
@@ -348,6 +347,19 @@ impl AppData {
     }
 
     pub fn reload_state(&self) {
-        self.writing_without_flush(|a| *a = read_state_file().unwrap())
+        self.writing_without_flush(|a| *a = self.config.read_state_file().unwrap())
+    }
+}
+
+impl<'a> From<&'a AppConfig> for AppData<'a> {
+    fn from(value: &'a AppConfig) -> Self {
+        AppData {
+            inner: RwLock::new(
+                value
+                    .read_state_file()
+                    .unwrap_or_else(|_| InnerAppData::new()),
+            ),
+            config: value,
+        }
     }
 }

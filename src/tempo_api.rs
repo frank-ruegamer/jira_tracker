@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use std::time::Duration;
 
 use futures::future::try_join_all;
@@ -6,7 +5,7 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::Serialize;
 
 use crate::app_data::TrackerInformation;
-use crate::config::{JIRA_ACCOUNT_ID, TEMPO_API_TOKEN};
+use crate::config::AppConfig;
 
 pub struct TempoApi {
     client: reqwest::Client,
@@ -45,10 +44,9 @@ where
 }
 
 impl TempoApi {
-    pub fn new() -> Self {
-        let mut authorization_value: HeaderValue = format!("Bearer {}", TEMPO_API_TOKEN.deref())
-            .parse()
-            .unwrap();
+    fn new(tempo_api_token: &str, jira_account_id: &str) -> Self {
+        let mut authorization_value: HeaderValue =
+            format!("Bearer {}", tempo_api_token).parse().unwrap();
         authorization_value.set_sensitive(true);
 
         let mut headers = HeaderMap::new();
@@ -61,7 +59,7 @@ impl TempoApi {
 
         Self {
             client,
-            jira_account_id: JIRA_ACCOUNT_ID.clone(),
+            jira_account_id: jira_account_id.to_string(),
         }
     }
 
@@ -85,5 +83,11 @@ impl TempoApi {
             .map(|tracker| self.submit(tracker))
             .collect();
         try_join_all(results).await.map(|_| ())
+    }
+}
+
+impl From<&AppConfig> for TempoApi {
+    fn from(config: &AppConfig) -> Self {
+        TempoApi::new(&config.tempo_api_token, &config.jira_account_id)
     }
 }

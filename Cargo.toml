@@ -9,6 +9,7 @@ publish = false
 [dependencies]
 axum = { version = "0.6.12", features = ["macros"] }
 chrono = { version = "0.4.24", features = ["serde"] }
+figment = { version = "0.10.8", features = ["env"] }
 futures = "0.3.27"
 hotwatch = "0.4.6"
 humantime-serde = "1.1.1"
@@ -18,7 +19,6 @@ reqwest = { version = "0.11.16", features = ["json"] }
 serde = { version = "1.0.159", features = ["derive"] }
 serde_json = "1.0.95"
 shellexpand = "3.1.0"
-static_init = "1.0.3"
 tokio = { version = "1.0", features = ["full"] }
 tower-http = { version = "0.4.0", features = ["trace", "normalize-path"] }
 tracing = "0.1"

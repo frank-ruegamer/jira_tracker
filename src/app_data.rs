@@ -2,6 +2,7 @@ use core::option::Option;
 use core::result::Result;
 use core::result::Result::{Err, Ok};
 use std::ops::{AddAssign, Deref, DerefMut};
+use std::path::PathBuf;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
@@ -12,7 +13,8 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::config::{read_state_file, write_state_file};
+use crate::config::AppConfig;
+use crate::files;
 use crate::serde::instant_serializer;
 
 #[derive(Debug)]
@@ -254,19 +256,18 @@ impl InnerAppData {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AppData(RwLock<InnerAppData>);
+#[derive(Debug)]
+pub struct AppData {
+    inner: RwLock<InnerAppData>,
+    path: PathBuf,
+}
 
 impl AppData {
-    pub fn new() -> Self {
-        Self(RwLock::new(InnerAppData::new()))
-    }
-
     fn reading<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&InnerAppData) -> T,
     {
-        let AppData(inner) = self;
+        let AppData { inner, .. } = self;
         f(inner.read().unwrap().deref())
     }
 
@@ -275,7 +276,7 @@ impl AppData {
         F: FnOnce(&mut InnerAppData) -> T,
     {
         let result = self.writing_without_flush(f);
-        write_state_file(self).unwrap();
+        files::write_file(&self.path, &self.inner).unwrap();
         result
     }
 
@@ -283,7 +284,7 @@ impl AppData {
     where
         F: FnOnce(&mut InnerAppData) -> T,
     {
-        let AppData(inner) = self;
+        let AppData { inner, .. } = self;
         f(inner.write().unwrap().deref_mut())
     }
 
@@ -348,6 +349,17 @@ impl AppData {
     }
 
     pub fn reload_state(&self) {
-        self.writing_without_flush(|a| *a = read_state_file().unwrap())
+        self.writing_without_flush(|a| *a = files::read_file(&self.path).unwrap())
+    }
+}
+
+impl From<&AppConfig> for AppData {
+    fn from(config: &AppConfig) -> Self {
+        let path = config.get_state_file();
+        let inner = files::read_file(&path).unwrap_or_else(|_| InnerAppData::new());
+        AppData {
+            inner: RwLock::new(inner),
+            path,
+        }
     }
 }

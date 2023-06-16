@@ -1,3 +1,4 @@
+#![allow(clippy::new_without_default)]
 extern crate core;
 
 use std::net::SocketAddr;
@@ -8,11 +9,12 @@ use axum::Router;
 use tower_http::normalize_path::NormalizePathLayer;
 
 use crate::app_data::AppData;
-use crate::config::{get_initial_state, watch_state_file};
+use crate::config::AppConfig;
 use crate::tempo_api::TempoApi;
 
 mod app_data;
 mod config;
+mod files;
 mod logging;
 mod serde;
 mod tempo_api;
@@ -24,11 +26,11 @@ pub struct AppState {
     tempo_api: Arc<TempoApi>,
 }
 
-impl AppState {
-    fn new() -> Self {
+impl From<&AppConfig> for AppState {
+    fn from(config: &AppConfig) -> Self {
         AppState {
-            data: Arc::new(get_initial_state()),
-            tempo_api: Arc::new(TempoApi::new()),
+            data: Arc::new(config.into()),
+            tempo_api: Arc::new(config.into()),
         }
     }
 }
@@ -49,10 +51,11 @@ impl FromRef<AppState> for Arc<TempoApi> {
 async fn main() {
     let logging_layer = logging::setup_logging();
 
-    let state = AppState::new();
+    let config = &AppConfig::new();
+    let state: AppState = config.into();
     let cloned_state = state.data.clone();
 
-    let _hotwatch = watch_state_file(move || cloned_state.reload_state());
+    let _hotwatch = files::watch_file(config.get_state_file(), move || cloned_state.reload_state());
 
     let app: Router = web::router()
         .layer(logging_layer)

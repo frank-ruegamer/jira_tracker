@@ -1,11 +1,10 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 use std::{fs, io};
 
-use hotwatch::notify::DebouncedEvent;
-use hotwatch::Hotwatch;
+use notify::event::{AccessKind, AccessMode, ModifyKind, RenameMode};
+use notify::{recommended_watcher, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::info_span;
@@ -37,7 +36,7 @@ where
 }
 
 #[must_use]
-pub fn watch_file<P, F>(path: P, handler: F) -> Hotwatch
+pub fn watch_file<P, F>(path: P, handler: F) -> RecommendedWatcher
 where
     P: Into<PathBuf>,
     F: 'static + Fn() + Send,
@@ -61,14 +60,17 @@ where
         .unwrap_or(Path::new("."))
         .canonicalize()
         .unwrap_or_else(|_| panic!("Parent path for {} does not exist.", watched_path.display()));
-    let mut hotwatch = Hotwatch::new_with_custom_delay(Duration::from_secs(1)).unwrap();
-    hotwatch
-        .watch(parent, move |event| match event {
-            DebouncedEvent::Create(event_path)
-            | DebouncedEvent::Write(event_path)
-            | DebouncedEvent::Chmod(event_path)
-            | DebouncedEvent::Rename(_, event_path) => {
-                if let Ok(path) = event_path.canonicalize() {
+    let mut watcher = recommended_watcher(move |event| {
+        if let Ok(Event {
+            kind:
+                EventKind::Access(AccessKind::Close(AccessMode::Write))
+                | EventKind::Modify(ModifyKind::Name(RenameMode::To)),
+            paths,
+            ..
+        }) = event
+        {
+            for path in paths {
+                if let Ok(path) = path.canonicalize() {
                     if Some(path) == watched_path.canonicalize().ok() {
                         span.in_scope(|| {
                             tracing::debug!("loading state from file");
@@ -77,11 +79,12 @@ where
                     }
                 }
             }
-            _ => {}
-        })
-        .unwrap();
+        }
+    })
+    .unwrap();
+    watcher.watch(&parent, RecursiveMode::NonRecursive).unwrap();
 
     tracing::debug!("started monitoring of state file");
 
-    hotwatch
+    watcher
 }

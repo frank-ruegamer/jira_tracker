@@ -6,6 +6,30 @@ use axum::response::{IntoResponse, Response};
 use figment::providers::Env;
 use figment::Figment;
 use serde::Deserialize;
+use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
+use tower_http::trace::TraceLayer;
+use tracing::Level;
+use tracing_subscriber::filter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
+#[derive(Debug, Deserialize)]
+pub struct AppConfig {
+    pub jira_account_id: String,
+    pub tempo_api_token: String,
+    json_file: String,
+}
+
+impl AppConfig {
+    pub fn new() -> Self {
+        let figment = Figment::from(Env::raw());
+        figment.extract().unwrap()
+    }
+
+    pub fn get_state_file(&self) -> PathBuf {
+        PathBuf::from(shellexpand::full(&self.json_file).unwrap().as_ref())
+    }
+}
 
 pub struct LogError(Box<dyn Error>);
 
@@ -26,20 +50,18 @@ impl IntoResponse for LogError {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct AppConfig {
-    pub jira_account_id: String,
-    pub tempo_api_token: String,
-    json_file: String,
-}
+#[must_use]
+pub fn setup_logging() -> TraceLayer<SharedClassifier<ServerErrorsAsFailures>> {
+    let targets = filter::Targets::new()
+        .with_target("tower_http::trace::on_request", Level::DEBUG)
+        .with_target("tower_http::trace::make_span", Level::DEBUG)
+        .with_target("jira_tracker", Level::DEBUG)
+        .with_default(Level::INFO);
 
-impl AppConfig {
-    pub fn new() -> Self {
-        let figment = Figment::from(Env::raw());
-        figment.extract().unwrap()
-    }
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(targets)
+        .init();
 
-    pub fn get_state_file(&self) -> PathBuf {
-        PathBuf::from(shellexpand::full(&self.json_file).unwrap().as_ref())
-    }
+    TraceLayer::new_for_http()
 }

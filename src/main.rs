@@ -15,7 +15,6 @@ use crate::tempo_api::TempoApi;
 mod app_data;
 mod config;
 mod files;
-mod logging;
 mod serde;
 mod tempo_api;
 mod web;
@@ -49,7 +48,7 @@ impl FromRef<AppState> for Arc<TempoApi> {
 
 #[tokio::main]
 async fn main() {
-    let logging_layer = logging::setup_logging();
+    let logging_layer = config::setup_logging();
 
     let config = &AppConfig::new();
     let state: AppState = config.into();

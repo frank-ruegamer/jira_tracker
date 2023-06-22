@@ -5,8 +5,8 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::extract::FromRef;
-use axum::Router;
-use tower_http::normalize_path::NormalizePathLayer;
+use axum::ServiceExt;
+use tower_http::normalize_path::NormalizePath;
 
 use crate::app_data::AppData;
 use crate::config::AppConfig;
@@ -56,10 +56,8 @@ async fn main() {
 
     let _hotwatch = files::watch_file(config.get_state_file(), move || cloned_state.reload_state());
 
-    let app: Router = web::router()
-        .layer(logging_layer)
-        .layer(NormalizePathLayer::trim_trailing_slash())
-        .with_state(state);
+    let router = web::router().layer(logging_layer).with_state(state);
+    let app = NormalizePath::trim_trailing_slash(router);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     tracing::debug!("listening on {}", addr);

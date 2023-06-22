@@ -59,7 +59,7 @@ async fn main() {
     let router = web::router().layer(logging_layer).with_state(state);
     let app = NormalizePath::trim_trailing_slash(router);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
+    let addr = SocketAddr::from(([127, 0, 0, 1], config.tracker_port));
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

@@ -13,10 +13,14 @@ use tracing_subscriber::filter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+const DEFAULT_PORT: fn() -> u16 = || 8080;
+
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
     pub jira_account_id: String,
     pub tempo_api_token: String,
+    #[serde(default = "DEFAULT_PORT")]
+    pub tracker_port: u16,
     json_file: String,
 }
 

@@ -4,6 +4,7 @@
 * DONE remove ~key~ property from trackers
 * TODO Use ~SystemTime~ instead of ~Instant~, because of Windows
 * DONE Native duration addition and deletion
+* DONE duration adjustment on two trackers at the same time
 * DONE check on correct jira format
 * DONE filter trackers < 1 min before submitting
 * TODO allow multiple trackers with the same JIRA key
@@ -14,4 +15,4 @@
 * TODO use AsRef in app data where a &key is needed
 * TODO add logging and panic when deserializing from state file failed
 * DONE fix rearranging of trackers when updating, or sort at endpoint by start time
-* TODO configurable port via env variable
+* DONE configurable port via env variable

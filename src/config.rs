@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use figment::providers::Env;
 use figment::Figment;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower_http::trace::TraceLayer;
 use tracing::Level;
@@ -15,23 +15,28 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 const DEFAULT_PORT: fn() -> u16 = || 8080;
 
+fn deserialize_path<'de, D>(deserializer: D) -> Result<PathBuf, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let string = String::deserialize(deserializer)?;
+    Ok(PathBuf::from(shellexpand::full(&string).unwrap().as_ref()))
+}
+
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
     pub jira_account_id: String,
     pub tempo_api_token: String,
     #[serde(default = "DEFAULT_PORT")]
     pub tracker_port: u16,
-    json_file: String,
+    #[serde(deserialize_with = "deserialize_path")]
+    pub json_file: PathBuf,
 }
 
 impl AppConfig {
     pub fn new() -> Self {
         let figment = Figment::from(Env::raw());
         figment.extract().unwrap()
-    }
-
-    pub fn get_state_file(&self) -> PathBuf {
-        PathBuf::from(shellexpand::full(&self.json_file).unwrap().as_ref())
     }
 }
 

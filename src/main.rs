@@ -54,7 +54,7 @@ async fn main() {
     let state: AppState = config.into();
     let cloned_state = state.data.clone();
 
-    let _hotwatch = files::watch_file(config.get_state_file(), move || cloned_state.reload_state());
+    let _hotwatch = files::watch_file(&config.json_file, move || cloned_state.reload_state());
 
     let router = web::router().layer(logging_layer).with_state(state);
     let app = NormalizePath::trim_trailing_slash(router);

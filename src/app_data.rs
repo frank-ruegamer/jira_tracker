@@ -356,7 +356,13 @@ impl AppData {
 impl From<&AppConfig> for AppData {
     fn from(config: &AppConfig) -> Self {
         let path = &config.json_file;
-        let inner = files::read_file(&path).unwrap_or_else(|_| InnerAppData::new());
+        let inner = files::read_file(&path).unwrap_or_else(|e| {
+            if e.is_not_found() {
+                InnerAppData::new()
+            } else {
+                Err(e).unwrap()
+            }
+        });
         AppData {
             inner: RwLock::new(inner),
             path: path.into(),

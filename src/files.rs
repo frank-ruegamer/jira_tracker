@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
@@ -9,29 +9,44 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::info_span;
 
-pub fn read_file<P, D>(path: P) -> Result<D, io::Error>
+#[derive(Debug)]
+pub enum FileError {
+    IO(io::Error),
+    Serde(serde_json::Error),
+}
+
+impl FileError {
+    pub fn is_not_found(&self) -> bool {
+        match self {
+            FileError::IO(e) => e.kind() == ErrorKind::NotFound,
+            FileError::Serde(_) => false,
+        }
+    }
+}
+
+pub fn read_file<P, D>(path: P) -> Result<D, FileError>
 where
     P: AsRef<Path>,
     D: DeserializeOwned,
 {
-    let file = File::open(path)?;
+    let file = File::open(path).map_err(FileError::IO)?;
     let reader = BufReader::new(file);
-    let app_data = serde_json::from_reader(reader)?;
+    let app_data = serde_json::from_reader(reader).map_err(FileError::Serde)?;
     Ok(app_data)
 }
 
-pub fn write_file<P, S>(buf: P, value: &S) -> Result<(), io::Error>
+pub fn write_file<P, S>(buf: P, value: &S) -> Result<(), FileError>
 where
     P: AsRef<Path>,
     S: ?Sized + Serialize,
 {
     let parent_directory = buf.as_ref().parent().unwrap();
-    fs::create_dir_all(parent_directory)?;
-    let file = File::create(buf)?;
+    fs::create_dir_all(parent_directory).map_err(FileError::IO)?;
+    let file = File::create(buf).map_err(FileError::IO)?;
 
     let mut writer = BufWriter::new(file);
-    serde_json::to_writer_pretty(&mut writer, value)?;
-    writer.flush()?;
+    serde_json::to_writer_pretty(&mut writer, value).map_err(FileError::Serde)?;
+    writer.flush().map_err(FileError::IO)?;
     Ok(())
 }
 

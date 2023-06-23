@@ -2,7 +2,7 @@
 
 * DONE preserve trackers before submitting in case of errors
 * DONE remove ~key~ property from trackers
-* TODO Use ~SystemTime~ instead of ~Instant~, because of Windows
+* DONE Use ~SystemTime~ instead of ~Instant~, because of Windows
 * DONE Native duration addition and deletion
 * DONE duration adjustment on two trackers at the same time
 * DONE check on correct jira format

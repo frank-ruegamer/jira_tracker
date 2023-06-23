@@ -15,7 +15,6 @@ use crate::tempo_api::TempoApi;
 mod app_data;
 mod config;
 mod files;
-mod serde;
 mod tempo_api;
 mod web;
 

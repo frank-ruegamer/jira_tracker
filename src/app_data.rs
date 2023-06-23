@@ -4,7 +4,7 @@ use core::result::Result::{Err, Ok};
 use std::ops::{AddAssign, Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::RwLock;
-use std::time::{Duration, Instant};
+use std::time::{Duration, SystemTime};
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::AppConfig;
 use crate::files;
-use crate::serde::instant_serializer;
 
 #[derive(Debug)]
 pub enum TrackerError {
@@ -63,22 +62,21 @@ impl PausedTracker {
 
 impl AddAssign<&RunningTracker> for PausedTracker {
     fn add_assign(&mut self, rhs: &RunningTracker) {
-        self.duration += rhs.start_time.elapsed();
+        self.duration += rhs.start_time.elapsed().unwrap_or_default();
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct RunningTracker {
     key: String,
-    #[serde(with = "instant_serializer")]
-    start_time: Instant,
+    start_time: SystemTime,
 }
 
 impl RunningTracker {
     fn new(key: &str) -> Self {
         Self {
             key: key.to_string(),
-            start_time: Instant::now(),
+            start_time: SystemTime::now(),
         }
     }
 }
@@ -113,7 +111,9 @@ impl InnerAppData {
                 .running
                 .as_ref()
                 .filter(|r| r.key == key)
-                .map_or(Duration::ZERO, |r| r.start_time.elapsed());
+                .map_or(Duration::ZERO, |r| {
+                    r.start_time.elapsed().unwrap_or_default()
+                });
             let positive_adjustments_sum: Duration = tracker.positive_adjustments.iter().sum();
             let negative_adjustments_sum: Duration = tracker.negative_adjustments.iter().sum();
             let positive_duration_sum =

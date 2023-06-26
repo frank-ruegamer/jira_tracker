@@ -12,7 +12,7 @@
 * TODO fix hot reloading immediately after saving
 * DONE fix hot reloading if file does not exist
 * DONE return fitting bodies on certain mutation requests
-* TODO use AsRef in app data where a &key is needed
+* HOLD use AsRef in app data where a &key is needed
 * DONE add logging and panic when deserializing from state file failed
 * DONE fix rearranging of trackers when updating, or sort at endpoint by start time
 * DONE configurable port via env variable

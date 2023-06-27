@@ -276,7 +276,7 @@ impl AppData {
         F: FnOnce(&mut InnerAppData) -> T,
     {
         let result = self.writing_without_flush(f);
-        files::write_file(&self.path, &self.inner).unwrap();
+        self.reading(|a| files::write_file(&self.path, a).unwrap());
         result
     }
 

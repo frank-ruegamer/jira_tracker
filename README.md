@@ -6,11 +6,12 @@ Recommended/Optional Setup
 
 ### Required ENV variables
 
-| Variable        | Description                                                |
-|-----------------|------------------------------------------------------------|
-| JIRA_ACCOUNT_ID | Jira Account ID associated with submitted worklogs         |
-| TEMPO_API_TOKEN | API Token for Tempo API                                    |
-| JSON_FILE       | Location of persistent state json file (preserve restarts) |
+| Variable        | Description                                                | Default |
+|-----------------|------------------------------------------------------------|---------|
+| JIRA_ACCOUNT_ID | Jira Account ID associated with submitted worklogs         |         |
+| TEMPO_API_TOKEN | API Token for Tempo API                                    |         |
+| JSON_FILE       | Location of persistent state json file (preserve restarts) |         |
+| TRACKER_PORT    | Port the web server will run on (optional)                 | 8080    |
 
 ### Executable
 

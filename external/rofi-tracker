@@ -14,12 +14,12 @@ DELETE_STATUS=10
 DESCRIPTION_STATUS=11
 OPEN_STATUS=12
 
-trackers=$(curl -s localhost:8000/trackers | jq 'sort_by(.key)')
+trackers=$(curl -s localhost:8000/trackers)
 
 running_index=$(jq 'map(.running == true) | index(true)' <<< "${trackers}")
 
-entries=$(jq -r --argjson trackers "${trackers}" --arg running "${RUNNING_ICON}" --arg paused "${PAUSE_ICON}" \
-  '. + $trackers | group_by(.key) | map(add) | map(select(.duration)) | .[] | "\( if .running then $running else $paused end ) \( .key )|\( .fields.summary )|\( .duration )"' < "${ISSUES_FILE}" |\
+entries=$(jq -r --argfile issues "${ISSUES_FILE}" --arg running "${RUNNING_ICON}" --arg paused "${PAUSE_ICON}" \
+  '($issues | map({(.key|tostring): .}) | add) as $a | .[] | . + $a[.key] | "\( if .running then $running else $paused end ) \( .key )|\( .fields.summary )|\( .duration )"' <<< "${trackers}" |\
   sed -E 's/( [0-9][ms])/ \1/g' |\
   awk -F '|' '{printf "%-15s %-34s %10s\n", $1, substr($2, 0, 30), $3}' |\
   cat - <(echo "${NEW_ENTRY}"; echo "${REFRESH_ISSUES}"; echo "${SUBMIT_TRACKERS}"))

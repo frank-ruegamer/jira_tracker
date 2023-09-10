@@ -17,6 +17,7 @@ mod config;
 mod files;
 mod tempo_api;
 mod web;
+mod domain;
 
 #[derive(Clone)]
 pub struct AppState {

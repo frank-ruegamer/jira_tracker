@@ -14,6 +14,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::config::AppConfig;
+use crate::domain::TrackerInformation;
 use crate::files;
 
 #[derive(Debug)]
@@ -79,16 +80,6 @@ impl RunningTracker {
             start_time: SystemTime::now(),
         }
     }
-}
-
-#[derive(Debug, Serialize)]
-pub struct TrackerInformation {
-    pub key: String,
-    pub description: Option<String>,
-    #[serde(with = "humantime_serde")]
-    pub duration: Duration,
-    pub running: bool,
-    pub start_time: DateTime<Local>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

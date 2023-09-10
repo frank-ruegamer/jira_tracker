@@ -5,6 +5,10 @@ edition = "2021"
 publish = false
 default-run = "jira_tracker"
 
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
 [profile.release]
 strip = true
 lto = true
@@ -21,7 +25,8 @@ humantime-serde = "1.1.1"
 indexmap = { version = "1.9.3", features = ["serde"] }
 notify = "6.0.1"
 regex = "1.8.4"
-reqwest = { version = "0.11.18", features = ["json"] }
+reqwest = { version = "0.11.18", features = ["json", "blocking"] }
+rofi-mode = "0.3.1"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.97"
 shellexpand = "3.1.0"

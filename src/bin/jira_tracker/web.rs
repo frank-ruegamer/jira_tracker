@@ -8,10 +8,11 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
-use crate::app_data::{AppData, TrackerError, TrackerInformation};
+use crate::app_data::{AppData, TrackerError};
 use crate::config::LogError;
 use crate::tempo_api::TempoApi;
 use crate::AppState;
+use crate::domain::TrackerInformation;
 
 async fn list(State(state): State<Arc<AppData>>) -> Json<Vec<TrackerInformation>> {
     Json(state.list_trackers())

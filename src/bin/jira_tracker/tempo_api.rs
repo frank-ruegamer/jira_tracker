@@ -4,7 +4,7 @@ use futures::future::try_join_all;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::Serialize;
 
-use crate::app_data::TrackerInformation;
+use crate::domain::TrackerInformation;
 use crate::config::AppConfig;
 
 pub struct TempoApi {

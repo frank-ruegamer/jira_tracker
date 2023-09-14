@@ -5,14 +5,6 @@ edition = "2021"
 publish = false
 default-run = "jira_tracker"
 
-[[bin]]
-name = "jira_tracker"
-path = "src/jira_tracker.rs"
-
-[[bin]]
-name = "jira_export"
-path = "src/jira_export.rs"
-
 [profile.release]
 strip = true
 lto = true

@@ -7,7 +7,7 @@ default-run = "jira_tracker"
 
 [[bin]]
 name = "jira_tracker"
-path = "src/main.rs"
+path = "src/jira_tracker.rs"
 
 [[bin]]
 name = "jira_export"

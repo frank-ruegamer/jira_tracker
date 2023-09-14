@@ -3,6 +3,15 @@ name = "jira_tracker"
 version = "0.1.0"
 edition = "2021"
 publish = false
+default-run = "jira_tracker"
+
+[[bin]]
+name = "jira_tracker"
+path = "src/main.rs"
+
+[[bin]]
+name = "jira_export"
+path = "src/jira_export.rs"
 
 [profile.release]
 strip = true
@@ -13,6 +22,7 @@ lto = true
 [dependencies]
 axum = { version = "0.6.18", features = ["macros"] }
 chrono = { version = "0.4.26", features = ["serde"] }
+dirs = "5.0.1"
 figment = { version = "0.10.10", features = ["env"] }
 futures = "0.3.28"
 humantime-serde = "1.1.1"

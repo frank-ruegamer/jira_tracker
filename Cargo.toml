@@ -1,36 +1,7 @@
-[package]
-name = "jira_tracker"
-version = "0.1.0"
-edition = "2021"
-publish = false
-default-run = "jira_tracker"
-
-[lib]
-path = "src/lib.rs"
-crate-type = ["cdylib"]
+[workspace]
+members = ["domain", "jira_export", "jira_tracker", "rofi_jira_tracker"]
+resolver = "2"
 
 [profile.release]
 strip = true
 lto = true
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-axum = { version = "0.6.18", features = ["macros"] }
-chrono = { version = "0.4.26", features = ["serde"] }
-dirs = "5.0.1"
-figment = { version = "0.10.10", features = ["env"] }
-futures = "0.3.28"
-humantime-serde = "1.1.1"
-indexmap = { version = "1.9.3", features = ["serde"] }
-notify = "6.0.1"
-regex = "1.8.4"
-reqwest = { version = "0.11.18", features = ["json", "blocking"] }
-rofi-mode = "0.3.1"
-serde = { version = "1.0.164", features = ["derive"] }
-serde_json = "1.0.97"
-shellexpand = "3.1.0"
-tokio = { version = "1.28.2", features = ["full"] }
-tower-http = { version = "0.4.1", features = ["trace", "normalize-path"] }
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }

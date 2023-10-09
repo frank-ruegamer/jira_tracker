@@ -1,8 +1,6 @@
-use crate::domain::TrackerInformation;
+use domain::TrackerInformation;
 use rofi_mode::cairo::Surface;
 use rofi_mode::{export_mode, Action, Api, Event, Matcher};
-
-mod domain;
 
 export_mode!(Mode);
 
@@ -15,7 +13,7 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
     const NAME: &'static str = "jira-tracker\0";
 
     fn init(api: Api<'rofi>) -> Result<Self, ()> {
-        let response = reqwest::blocking::get("http://localhost:8080/trackers").map_err(|_| ())?;
+        let response = reqwest::blocking::get("http://localhost:8000/trackers").map_err(|_| ())?;
         let trackers = response.json::<Vec<TrackerInformation>>().map_err(|_| ())?;
         Ok(Mode { api, trackers })
     }

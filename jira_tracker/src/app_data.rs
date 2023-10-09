@@ -14,8 +14,8 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::config::AppConfig;
-use crate::domain::TrackerInformation;
 use crate::files;
+use domain::TrackerInformation;
 
 #[derive(Debug)]
 pub enum TrackerError {

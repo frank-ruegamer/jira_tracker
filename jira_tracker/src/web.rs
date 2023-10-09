@@ -12,7 +12,7 @@ use crate::app_data::{AppData, TrackerError};
 use crate::config::LogError;
 use crate::tempo_api::TempoApi;
 use crate::AppState;
-use crate::domain::TrackerInformation;
+use domain::TrackerInformation;
 
 async fn list(State(state): State<Arc<AppData>>) -> Json<Vec<TrackerInformation>> {
     Json(state.list_trackers())

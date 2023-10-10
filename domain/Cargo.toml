@@ -1,12 +1,10 @@
 [package]
 name = "domain"
-version = "0.1.0"
-edition = "2021"
-publish = false
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-chrono = { version = "0.4.26", features = ["serde"] }
-humantime-serde = "1.1.1"
-serde = { version = "1.0.164", features = ["derive"] }
+chrono = { workspace = true }
+humantime-serde = { workspace = true }
+serde = { workspace = true }

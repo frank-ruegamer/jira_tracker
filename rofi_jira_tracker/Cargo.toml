@@ -1,15 +1,13 @@
 [package]
 name = "rofi_jira_tracker"
-version = "0.1.0"
-edition = "2021"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 domain = { path = "../domain" }
-reqwest = { version = "0.11.18", features = ["json", "blocking"] }
+reqwest = { workspace = true, features = ["blocking"] }
 rofi-mode = "0.3.1"

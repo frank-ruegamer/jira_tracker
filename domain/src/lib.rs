@@ -1,6 +1,6 @@
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use chrono::{DateTime, Local};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TrackerInformation {

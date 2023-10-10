@@ -855,7 +855,6 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "chrono",
- "dirs",
  "domain",
  "figment",
  "futures",

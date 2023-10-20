@@ -32,9 +32,9 @@ if entry=$(echo "${entries}" | rofi -dmenu -i -p "Total ${tracker_sum}" -width -
     curl -X POST "localhost:8000/trackers/${key}"
   elif [[ $entry == $REFRESH_ISSUES ]]; then
     if command -v sponge &> /dev/null; then
-      jira_issues.py | sponge "${ISSUES_FILE}"
+      jira-export | sponge "${ISSUES_FILE}"
     else
-      jira_issues.py > "${ISSUES_FILE}"
+      jira-export > "${ISSUES_FILE}"
     fi
   elif [[ $entry == $SUBMIT_TRACKERS ]]; then
     curl -X POST "localhost:8000/submit"

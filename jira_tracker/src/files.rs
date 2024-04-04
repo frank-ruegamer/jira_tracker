@@ -72,7 +72,7 @@ where
     let parent = watched_path
         .parent()
         .filter(|path| !path.as_os_str().is_empty())
-        .unwrap_or(Path::new("../../../../../.."))
+        .unwrap_or(Path::new("."))
         .canonicalize()
         .unwrap_or_else(|_| panic!("Parent path for {} does not exist.", watched_path.display()));
     let mut watcher = recommended_watcher(move |event| {

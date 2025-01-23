@@ -5,6 +5,7 @@ use std::time::Duration;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TrackerInformation {
     pub key: String,
+    pub id: String,
     pub description: Option<String>,
     #[serde(with = "humantime_serde")]
     pub duration: Duration,

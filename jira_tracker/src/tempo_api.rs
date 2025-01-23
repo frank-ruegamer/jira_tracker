@@ -14,8 +14,8 @@ pub struct TempoApi {
 
 #[derive(Debug, Serialize)]
 struct SubmitWorklogBody {
-    #[serde(rename = "issueKey")]
-    issue_key: String,
+    #[serde(rename = "issueId")]
+    issue_id: String,
     #[serde(rename = "timeSpentSeconds")]
     time_spent_seconds: u64,
     #[serde(rename = "startDate")]
@@ -33,7 +33,7 @@ where
 {
     fn from((tracker, author_account_id): (TrackerInformation, ID)) -> Self {
         Self {
-            issue_key: tracker.key,
+            issue_id: tracker.id,
             time_spent_seconds: tracker.duration.as_secs(),
             start_date: tracker.start_time.format("%Y-%m-%d").to_string(),
             start_time: tracker.start_time.format("%H:%M:%S").to_string(),
@@ -44,7 +44,7 @@ where
 }
 
 impl TempoApi {
-    fn new(tempo_api_token: &str, jira_account_id: &str) -> Self {
+    fn new<ID: Into<String>>(tempo_api_token: &str, jira_account_id: ID) -> Self {
         let mut authorization_value: HeaderValue =
             format!("Bearer {}", tempo_api_token).parse().unwrap();
         authorization_value.set_sensitive(true);
@@ -59,7 +59,7 @@ impl TempoApi {
 
         Self {
             client,
-            jira_account_id: jira_account_id.to_string(),
+            jira_account_id: jira_account_id.into(),
         }
     }
 
@@ -67,7 +67,7 @@ impl TempoApi {
         let request: SubmitWorklogBody = (tracker, &self.jira_account_id).into();
         let builder = self
             .client
-            .post("https://api.tempo.io/core/3/worklogs")
+            .post("https://api.tempo.io/4/worklogs")
             .json(&request);
         builder.send().await?.error_for_status()?;
         Ok(())
@@ -86,8 +86,11 @@ impl TempoApi {
     }
 }
 
-impl From<&AppConfig> for TempoApi {
-    fn from(config: &AppConfig) -> Self {
-        TempoApi::new(&config.tempo_api_token, &config.jira_account_id)
+impl<ID> From<(&AppConfig, ID)> for TempoApi
+where
+    ID: Into<String>,
+{
+    fn from((config, jira_account_id): (&AppConfig, ID)) -> Self {
+        TempoApi::new(&config.tempo_api_token, jira_account_id.into())
     }
 }

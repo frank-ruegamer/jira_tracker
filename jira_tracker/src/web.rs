@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app_data::{AppData, TrackerError};
 use crate::config::LogError;
+use crate::jira_api::JiraApi;
 use crate::tempo_api::TempoApi;
 use crate::AppState;
 use domain::TrackerInformation;
@@ -27,10 +28,15 @@ async fn get_tracker(
 
 async fn create(
     Path(key): Path<String>,
+    State(jira): State<Arc<JiraApi>>,
     State(state): State<Arc<AppData>>,
 ) -> Result<Json<TrackerInformation>, TrackerError> {
-    state.create_tracker(&key)?;
-    let tracker = state.start(&key).unwrap();
+    let issue = jira
+        .get_issue_info(&key)
+        .await
+        .map_err(|_| TrackerError::NotFoundError)?;
+    state.create_tracker(&key, &issue.id)?;
+    let tracker = state.start(&key)?;
     Ok(Json(tracker))
 }
 

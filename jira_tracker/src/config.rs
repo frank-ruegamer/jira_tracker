@@ -25,7 +25,8 @@ where
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
-    pub jira_account_id: String,
+    pub jira_email: String,
+    pub jira_api_token: String,
     pub tempo_api_token: String,
     #[serde(default = "DEFAULT_PORT")]
     pub tracker_port: u16,

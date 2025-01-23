@@ -13,9 +13,10 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+use domain::TrackerInformation;
+
 use crate::config::AppConfig;
 use crate::files;
-use domain::TrackerInformation;
 
 #[derive(Debug)]
 pub enum TrackerError {
@@ -39,6 +40,7 @@ impl IntoResponse for TrackerError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PausedTracker {
+    id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     duration: Duration,
@@ -50,8 +52,9 @@ pub struct PausedTracker {
 }
 
 impl PausedTracker {
-    fn new() -> Self {
+    fn new<S: Into<String>>(id: S) -> Self {
         Self {
+            id: id.into(),
             description: None,
             duration: Duration::default(),
             positive_adjustments: Vec::new(),
@@ -123,6 +126,7 @@ impl InnerAppData {
         let tracker = self.trackers.get(key).unwrap();
         TrackerInformation {
             key: key.to_owned(),
+            id: tracker.id.clone(),
             description: tracker.description.clone(),
             duration: self.elapsed_seconds(key).unwrap(),
             running: self
@@ -214,14 +218,15 @@ impl InnerAppData {
         self.running = None;
     }
 
-    fn create_tracker(&mut self, key: &str) -> Result<TrackerInformation, TrackerError> {
+    fn create_tracker(&mut self, key: &str, id: &str) -> Result<TrackerInformation, TrackerError> {
         if !Regex::new(r"\w+-\d+").unwrap().is_match(key) {
             return Err(TrackerError::KeyFormatError);
         }
         if self.trackers.contains_key(key) {
             return Err(TrackerError::OccupiedError);
         }
-        self.trackers.insert(key.to_string(), PausedTracker::new());
+        self.trackers
+            .insert(key.to_string(), PausedTracker::new(id));
         Ok(self.get_information(key))
     }
 
@@ -323,8 +328,8 @@ impl AppData {
         self.writing(|a| a.pause())
     }
 
-    pub fn create_tracker(&self, key: &str) -> Result<TrackerInformation, TrackerError> {
-        self.writing(|a| a.create_tracker(key))
+    pub fn create_tracker(&self, key: &str, id: &str) -> Result<TrackerInformation, TrackerError> {
+        self.writing(|a| a.create_tracker(key, id))
     }
 
     pub fn remove(&self, key: &str) -> Result<PausedTracker, TrackerError> {
@@ -347,7 +352,7 @@ impl AppData {
 impl From<&AppConfig> for AppData {
     fn from(config: &AppConfig) -> Self {
         let path = &config.json_file;
-        let inner = files::read_file(&path).unwrap_or_else(|e| {
+        let inner = files::read_file(path).unwrap_or_else(|e| {
             if e.is_not_found() {
                 InnerAppData::new()
             } else {

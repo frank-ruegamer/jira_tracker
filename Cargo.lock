@@ -1444,6 +1444,7 @@ dependencies = [
  "domain",
  "reqwest",
  "rofi-mode",
+ "tokio",
 ]
 
 [[package]]
